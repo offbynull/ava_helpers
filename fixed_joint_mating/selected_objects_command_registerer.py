@@ -62,9 +62,9 @@ class SelectedObjectsFixedJointMateVisibilityShowerCommand:
         import traceback
         from logger import error
 
-        from fixed_joint_mating import selected_objects_fixed_joint_mate_visiblity_hider
+        from fixed_joint_mating import selected_objects_fixed_joint_mate_visibility_shower
         try:
-            selected_objects_fixed_joint_mate_visiblity_hider.run(App.ActiveDocument)
+            selected_objects_fixed_joint_mate_visibility_shower.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -97,9 +97,9 @@ class SelectedObjectsFixedJointMateVisibilityHiderCommand:
         import traceback
         from logger import error
 
-        from fixed_joint_mating import selected_objects_fixed_joint_mate_visiblity_hider
+        from fixed_joint_mating import selected_objects_fixed_joint_mate_visibility_hider
         try:
-            selected_objects_fixed_joint_mate_visiblity_hider.run(App.ActiveDocument)
+            selected_objects_fixed_joint_mate_visibility_hider.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -132,9 +132,9 @@ class SelectedObjectsFixedJointMateVisibilityToggleCommand:
         import traceback
         from logger import error
 
-        from fixed_joint_mating import selected_objects_fixed_joint_mate_visiblity_toggler
+        from fixed_joint_mating import selected_objects_fixed_joint_mate_visibility_toggler
         try:
-            selected_objects_fixed_joint_mate_visiblity_toggler.run(App.ActiveDocument)
+            selected_objects_fixed_joint_mate_visibility_toggler.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())

@@ -4,7 +4,7 @@ import traceback
 import FreeCAD as App
 from logger import log, warn
 
-MATE_RE = re.compile(r'(?<!\S)mater\d*(?!\S)', re.I)
+MATE_RE = re.compile(r'(?:^|\s)mater\d*(?:\s|$)', re.I)
 ROT_180_Y = App.Rotation(App.Vector(0, 1, 0), 180)
 
 def is_fixed_joint(o: 'App.FeaturePython'):
@@ -40,7 +40,7 @@ def resolve_joint_lcs(ref: tuple[App.DocumentObject, list[str]]) -> App.GeoFeatu
 def is_mate_connector_lcs(o: App.GeoFeature):
     return (
         getattr(o, 'TypeId').endswith('::LocalCoordinateSystem')
-        and MATE_RE.match(getattr(o, 'Label', ''))
+        and MATE_RE.search(getattr(o, 'Label', ''))
     )
 
 def clock(docs: list[App.DocumentObject]):
@@ -100,10 +100,10 @@ def set_visibility(docs: list[App.DocumentObject], hidden: bool):
                 skipped += 1
                 continue
 
-            lcs1.ViewObjct.Visibility = hidden
-            lcs2.ViewObjct.Visibility = hidden
+            lcs1.ViewObject.Visibility = not hidden
+            lcs2.ViewObject.Visibility = not hidden
 
-            print('HIDDEN' if hidden else 'VISIBLE')
+            log('HIDDEN' if hidden else 'VISIBLE')
             changed += 1
         except Exception as e:
             warn(f'{j.Label if hasattr(j, "Label") else None}: \n{traceback.format_exc()}')
@@ -116,6 +116,7 @@ def toggle_visibility(docs: list[App.DocumentObject]):
     changed = 0
     skipped = 0
 
+    seen = set()
     for j in docs:
         try:
             if not is_fixed_joint(j):
@@ -133,11 +134,14 @@ def toggle_visibility(docs: list[App.DocumentObject]):
                 skipped += 1
                 continue
 
-            hidden = lcs1.ViewObject.Visibility
-            lcs1.ViewObjct.Visibility = not hidden
-            lcs2.ViewObjct.Visibility = not hidden
-
-            print('HIDDEN' if hidden else 'VISIBLE')
+            if lcs1 not in seen:
+                lcs1.ViewObject.Visibility = not lcs1.ViewObject.Visibility
+                seen.add(lcs1)
+                log('Ref 1 VISIBILITY TOGGLED')
+            if lcs2 not in seen:
+                lcs2.ViewObject.Visibility = not lcs2.ViewObject.Visibility
+                seen.add(lcs2)
+                log('Ref 2 VISIBILITY TOGGLED')
             changed += 1
         except Exception as e:
             warn(f'{j.Label if hasattr(j, "Label") else None}: \n{traceback.format_exc()}')

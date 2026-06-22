@@ -61,9 +61,9 @@ class DocumentFixedJointMateVisibilityShowerCommand:
         import traceback
         from logger import error
 
-        from fixed_joint_mating import document_fixed_joint_mate_visiblity_shower
+        from fixed_joint_mating import document_fixed_joint_mate_visibility_shower
         try:
-            document_fixed_joint_mate_visiblity_shower.run(App.ActiveDocument)
+            document_fixed_joint_mate_visibility_shower.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -96,9 +96,9 @@ class DocumentFixedJointMateVisibilityHiderCommand:
         import traceback
         from logger import error
 
-        from fixed_joint_mating import document_fixed_joint_mate_visiblity_hider
+        from fixed_joint_mating import document_fixed_joint_mate_visibility_hider
         try:
-            document_fixed_joint_mate_visiblity_hider.run(App.ActiveDocument)
+            document_fixed_joint_mate_visibility_hider.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -131,9 +131,9 @@ class DocumentFixedJointMateVisibilityToggleCommand:
         import traceback
         from logger import error
 
-        from fixed_joint_mating import document_fixed_joint_mate_visiblity_toggler
+        from fixed_joint_mating import document_fixed_joint_mate_visibility_toggler
         try:
-            document_fixed_joint_mate_visiblity_toggler.run(App.ActiveDocument)
+            document_fixed_joint_mate_visibility_toggler.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())

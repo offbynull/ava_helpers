@@ -11,5 +11,5 @@ def run(doc: App.Document | None = None):
         warn('AvaHelpersWorkbench: no active document.')
         return
     objects = get_all_descendants_under_active_object(doc)
-    _fixed_joint_mater.set_visibility(objects, True)
+    _fixed_joint_mater.set_visibility(objects, False)
     doc.recompute()

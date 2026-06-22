@@ -9,5 +9,5 @@ def run(doc: App.Document | None = None):
     if doc is None:
         warn('AvaHelpersWorkbench: no active document.')
         return
-    _fixed_joint_mater.set_visibility(doc.Objects, True)
+    _fixed_joint_mater.set_visibility(doc.Objects, False)
     doc.recompute()

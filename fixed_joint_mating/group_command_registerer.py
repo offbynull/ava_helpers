@@ -10,9 +10,10 @@ class FixedJointMaterGroupCommand:
             selected_objects_command_registerer
 
         return \
-            tuple(document_command_registerer.get_names()) + \
+            tuple(selected_objects_command_registerer.get_names()) + \
             tuple(active_object_command_registerer.get_names()) + \
-            tuple(selected_objects_command_registerer.get_names())
+            tuple(document_command_registerer.get_names())
+
 
     def GetResources(self):
         from pathlib import Path
@@ -34,9 +35,9 @@ def register():
     from fixed_joint_mating import document_command_registerer, active_object_command_registerer, \
         selected_objects_command_registerer
 
-    document_command_registerer.register()
-    active_object_command_registerer.register()
     selected_objects_command_registerer.register()
+    active_object_command_registerer.register()
+    document_command_registerer.register()
 
     FreeCADGui.addCommand(
         FixedJointMaterGroupCommand.__name__,
