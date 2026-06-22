@@ -30,7 +30,7 @@ class ActiveObjectFixedJointMaterCommand:
         try:
             active_object_fixed_joint_mater.run(App.ActiveDocument)
         except Exception as exc:
-            error('Failed: {}'.format(exc))
+            error(f'Failed: {exc}')
             error(traceback.format_exc())
             raise
 
@@ -65,7 +65,7 @@ class ActiveObjectFixedJointMateVisibilityShowerCommand:
         try:
             active_object_fixed_joint_mate_visiblity_shower.run(App.ActiveDocument)
         except Exception as exc:
-            error('Failed: {}'.format(exc))
+            error(f'Failed: {exc}')
             error(traceback.format_exc())
             raise
 
@@ -100,7 +100,7 @@ class ActiveObjectFixedJointMateVisibilityHiderCommand:
         try:
             active_object_fixed_joint_mate_visiblity_hider.run(App.ActiveDocument)
         except Exception as exc:
-            error('Failed: {}'.format(exc))
+            error(f'Failed: {exc}')
             error(traceback.format_exc())
             raise
 
@@ -135,7 +135,7 @@ class ActiveObjectFixedJointMateVisibilityToggleCommand:
         try:
             active_object_fixed_joint_mate_visiblity_toggler.run(App.ActiveDocument)
         except Exception as exc:
-            error('Failed: {}'.format(exc))
+            error(f'Failed: {exc}')
             error(traceback.format_exc())
             raise
 

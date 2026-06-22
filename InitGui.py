@@ -17,8 +17,10 @@ class Workbench(FreeCADGui.Workbench):
     )
 
     def Initialize(self):
-        from fixed_joint_mating import command_registerer
-        command_registerer.register(self)
+        from fixed_joint_mating import command_registerer as fixed_joint_mating_command_registerer
+        from orientation import command_registerer as orientation_command_registerer
+        fixed_joint_mating_command_registerer.register(self)
+        orientation_command_registerer.register(self)
 
     def GetClassName(self):
         return 'Gui::PythonWorkbench'

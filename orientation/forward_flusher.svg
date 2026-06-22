@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cubeTop" x1="24" y1="9" x2="45" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a9cbf6"/>
+      <stop offset="1" stop-color="#6fa0e0"/>
+    </linearGradient>
+
+    <linearGradient id="cubeSide" x1="39" y1="20" x2="54" y2="43" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5f8fd0"/>
+      <stop offset="1" stop-color="#3e70b8"/>
+    </linearGradient>
+
+    <marker id="arrowRed" viewBox="0 0 6 6" markerWidth="6" markerHeight="6"
+            refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L6 3 L0 6 Z" fill="#d40000"/>
+    </marker>
+
+    <marker id="arrowPurple" viewBox="0 0 6 6" markerWidth="6" markerHeight="6"
+            refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L6 3 L0 6 Z" fill="#75507b"/>
+    </marker>
+  </defs>
+
+  <!-- XY plane -->
+  <path d="M6 44 L32 58 L58 44 L32 30 Z"
+        fill="#d7ffd7" stroke="#269b26" stroke-width="2"/>
+
+  <path d="M14 44 H50"
+        stroke="#269b26" stroke-width="2" stroke-dasharray="4 5"/>
+
+  <!-- cube -->
+  <path d="M21 17 L36 8 L53 18 L38 28 Z"
+        fill="url(#cubeTop)" stroke="#204a87" stroke-width="2"/>
+
+  <path d="M38 28 L53 18 L53 35 L38 45 Z"
+        fill="url(#cubeSide)" stroke="#204a87" stroke-width="2"/>
+
+  <path d="M21 17 L38 28 L38 45 L21 34 Z"
+        fill="#ffcc00" fill-opacity="0.45"
+        stroke="#c17d11" stroke-width="2"/>
+
+  <!-- selected edge -->
+  <path d="M21 34 L38 45"
+        stroke="#e60000" stroke-width="4"
+        stroke-linecap="round"/>
+
+  <!-- rotation cue -->
+  <path d="M48 14 C57 24 57 35 49 44"
+        fill="none" stroke="#75507b" stroke-width="3"
+        stroke-linecap="round" marker-end="url(#arrowPurple)"/>
+
+  <!-- -Y/front direction -->
+  <path d="M32 46 V57"
+        stroke="#d40000" stroke-width="3"
+        stroke-linecap="round" marker-end="url(#arrowRed)"/>
+
+  <text x="38" y="58"
+        font-family="DejaVu Sans, Arial, sans-serif"
+        font-size="8" font-weight="bold"
+        fill="#d40000">-Y</text>
+</svg>

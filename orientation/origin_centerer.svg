@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- center crosshair -->
+  <path d="M32 34 V54 M14 44 H50"
+        stroke="#269b26" stroke-width="2" stroke-dasharray="4 4"/>
+
+  <!-- cube -->
+  <path d="M21 17 L36 8 L53 18 L38 28 Z"
+        fill-opacity="0" stroke="#204a87" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <path d="M38 28 L53 18 L53 35 L38 45 Z"
+        fill-opacity="0" stroke="#204a87" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <path d="M21 17 L38 28 L38 45 L21 34 Z"
+        fill-opacity="0"  stroke="#204a87" stroke-width="2"  stroke-dasharray="3,3"/>
+
+  <!-- inward centering arrows -->
+  <path d="M10 44 H27"
+        stroke="#d40000" stroke-width="3"
+        stroke-linecap="round"/>
+
+  <path d="M54 44 H37"
+        stroke="#d40000" stroke-width="3"
+        stroke-linecap="round"/>
+
+  <path d="M32 61 V49"
+        stroke="#d40000" stroke-width="3"
+        stroke-linecap="round"/>
+
+  <path d="M32 27 V39"
+        stroke="#d40000" stroke-width="3"
+        stroke-linecap="round"/>
+
+  <!-- origin target -->
+  <circle cx="32" cy="44" r="5"
+          fill="#ffffff" stroke="#d40000" stroke-width="2"/>
+
+  <circle cx="32" cy="44" r="2"
+          fill="#d40000"/>
+
+  <text x="34" y="57"
+        font-family="DejaVu Sans, Arial, sans-serif"
+        font-size="8" font-weight="bold"
+        fill="#d40000">0,0,0</text>
+</svg>

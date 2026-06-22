@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cubeTop" x1="22" y1="8" x2="45" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a9cbf6"/>
+      <stop offset="1" stop-color="#6fa0e0"/>
+    </linearGradient>
+
+    <linearGradient id="cubeSide" x1="39" y1="20" x2="52" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5f8fd0"/>
+      <stop offset="1" stop-color="#3e70b8"/>
+    </linearGradient>
+
+    <marker id="arrow" viewBox="0 0 6 6" markerWidth="6" markerHeight="6"
+            refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L6 3 L0 6 Z" fill="#75507b"/>
+    </marker>
+  </defs>
+
+  <!-- cube -->
+  <path d="M16 22 L32 12 L48 22 L32 32 Z"
+        fill="url(#cubeTop)" stroke="#204a87" stroke-width="2"/>
+
+  <path d="M32 32 L48 22 L48 40 L32 51 Z"
+        fill="url(#cubeSide)" stroke="#204a87" stroke-width="2"/>
+
+  <path d="M16 22 L32 32 L32 51 L16 40 Z"
+        fill="url(#cubeSide)" stroke="#204a87" stroke-width="2"/>
+
+  <!-- simple orientation cue -->
+  <path d="M12 14 C24 4 43 5 53 17"
+        fill="none" stroke="#75507b" stroke-width="4"
+        stroke-linecap="round" marker-end="url(#arrow)"/>
+</svg>
