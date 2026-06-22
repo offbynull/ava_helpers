@@ -43,7 +43,7 @@ def is_mate_connector_lcs(o: App.GeoFeature):
         and MATE_RE.match(getattr(o, 'Label', ''))
     )
 
-def run(docs: list[App.DocumentObject]):
+def clock(docs: list[App.DocumentObject]):
     changed = 0
     skipped = 0
 
@@ -71,6 +71,73 @@ def run(docs: list[App.DocumentObject]):
             j.touch()
 
             print('CLOCKED')
+            changed += 1
+        except Exception as e:
+            warn(f'{j.Label if hasattr(j, "Label") else None}: \n{traceback.format_exc()}')
+            skipped += 1
+
+    log(f'\nChanged: {changed} Skipped: {skipped}')
+
+
+def set_visibility(docs: list[App.DocumentObject], hidden: bool):
+    changed = 0
+    skipped = 0
+
+    for j in docs:
+        try:
+            if not is_fixed_joint(j):
+                continue
+
+            lcs1 = resolve_joint_lcs(j.Reference1)
+            lcs2 = resolve_joint_lcs(j.Reference2)
+
+            log('\nJoint: ' + j.Label)
+            log(f'Ref1: {lcs1.Name, lcs1.Label, lcs1.TypeId}')
+            log(f'Ref2: {lcs2.Name, lcs2.Label, lcs2.TypeId}')
+
+            if not (is_mate_connector_lcs(lcs1) and is_mate_connector_lcs(lcs2)):
+                log('Skipped')
+                skipped += 1
+                continue
+
+            lcs1.ViewObjct.Visibility = hidden
+            lcs2.ViewObjct.Visibility = hidden
+
+            print('HIDDEN' if hidden else 'VISIBLE')
+            changed += 1
+        except Exception as e:
+            warn(f'{j.Label if hasattr(j, "Label") else None}: \n{traceback.format_exc()}')
+            skipped += 1
+
+    log(f'\nChanged: {changed} Skipped: {skipped}')
+
+
+def toggle_visibility(docs: list[App.DocumentObject]):
+    changed = 0
+    skipped = 0
+
+    for j in docs:
+        try:
+            if not is_fixed_joint(j):
+                continue
+
+            lcs1 = resolve_joint_lcs(j.Reference1)
+            lcs2 = resolve_joint_lcs(j.Reference2)
+
+            log('\nJoint: ' + j.Label)
+            log(f'Ref1: {lcs1.Name, lcs1.Label, lcs1.TypeId}')
+            log(f'Ref2: {lcs2.Name, lcs2.Label, lcs2.TypeId}')
+
+            if not (is_mate_connector_lcs(lcs1) and is_mate_connector_lcs(lcs2)):
+                log('Skipped')
+                skipped += 1
+                continue
+
+            hidden = lcs1.ViewObject.Visibility
+            lcs1.ViewObjct.Visibility = not hidden
+            lcs2.ViewObjct.Visibility = not hidden
+
+            print('HIDDEN' if hidden else 'VISIBLE')
             changed += 1
         except Exception as e:
             warn(f'{j.Label if hasattr(j, "Label") else None}: \n{traceback.format_exc()}')

@@ -1,6 +1,6 @@
 import FreeCAD as App
 
-from fixed_joint_maters import _fixed_joint_mater
+from fixed_joint_mating import _fixed_joint_mater
 from utils import get_all_descendants_under_selected_objects
 
 

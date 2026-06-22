@@ -1,6 +1,6 @@
 import FreeCAD as App
 
-from fixed_joint_maters import _fixed_joint_mater
+from fixed_joint_mating import _fixed_joint_mater
 from logger import warn
 
 
@@ -9,5 +9,5 @@ def run(doc: App.Document | None = None):
     if doc is None:
         warn('AvaHelpersWorkbench: no active document.')
         return
-    _fixed_joint_mater.run(doc.Objects)
+    _fixed_joint_mater.set_visibility(doc.Objects, False)
     doc.recompute()
