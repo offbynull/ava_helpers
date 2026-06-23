@@ -134,7 +134,7 @@ def z_axes_are_correct_after_clocking(j):
     # That feels backwards, but it matches FreeCAD's fixed-joint mating semantics
     # for this setup. Earlier testing showed that using > 0 made the result flip
     # the wrong way.
-    return z1.dot(z2) < 0
+    return z1.dot(z2) > 0  # Use <0 for Z in same direction, or >0 for Z in opposite directions
 
 
 def flip_to_matching_z_direction(j):
