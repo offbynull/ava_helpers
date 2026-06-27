@@ -5,26 +5,66 @@ import FreeCAD as App
 from logger import log, warn
 
 
+# Set this default however you prefer.
+#
+# True:
+#   The visible/original mate LCS Z axes should point the same way.
+#
+# False:
+#   The visible/original mate LCS Z axes should point opposite ways.
+#
+# In both cases, the visible/original mate LCS Y axes should point the same way.
+SAME_Z_DIR = False
+
+
 # Match LCS labels like "mater", "mater1", "MATER2", etc.
 # Only joints whose two referenced LCS objects match this label pattern are modified.
 MATE_RE = re.compile(r'(?:^|\s)mater\d*(?:\s|$)', re.I)
 
-# These are the two clocking rotations we settled on:
+# Clocking rotations.
 #
-#   ROT_180_Y:
-#       Flips the connector frame so the mate orientation lines up the way
-#       FreeCAD expects for this fixed-joint setup.
+# ROT_180_Y:
+#   Flips X and Z, but keeps Y the same.
+#   This is the useful correction when we want:
 #
-#   ROT_180_Z:
-#       Spins around the connector's own Z axis. This preserves the Z direction
-#       but corrects the Y axis being backwards.
+#       Z opposite
+#       Y same
 #
-# The final clocking rotation is ROT_180_Y.multiply(ROT_180_Z).
+# ROT_180_Z:
+#   Flips X and Y, but keeps Z the same.
+#   This was useful in the earlier experiment, but it is NOT used for the final
+#   same/opposite-Z mode here because it makes Y point the wrong way.
 ROT_180_Y = App.Rotation(App.Vector(0, 1, 0), 180)
 ROT_180_Z = App.Rotation(App.Vector(0, 0, 1), 180)
 
 # Local +Z axis used when comparing connector directions.
 Z = App.Vector(0, 0, 1)
+
+
+def clocking_rotation(same_z_dir: bool):
+    # This returns the Offset2 rotation we want FreeCAD to use when computing
+    # Placement2 from Reference2.
+    #
+    # FreeCAD tries to align the two computed Joint Coordinate Systems.
+    # Offset2 lets us define how the visible/original second LCS should relate
+    # to that computed JCS.
+    #
+    # same_z_dir=True:
+    #   Use no extra rotation. If the computed JCS frames align, the visible LCS
+    #   frames also have:
+    #
+    #       Z same
+    #       Y same
+    #
+    # same_z_dir=False:
+    #   Use 180 degrees around Y. This keeps Y unchanged but reverses Z, giving:
+    #
+    #       Z opposite
+    #       Y same
+    if same_z_dir:
+        return App.Rotation()
+
+    return ROT_180_Y
 
 
 def is_fixed_joint(o: 'App.FeaturePython'):
@@ -122,19 +162,20 @@ def z_axes_are_correct_after_clocking(j):
     g1 = UtilsAssembly.getJcsGlobalPlc(j.Placement1, j.Reference1)
     g2 = UtilsAssembly.getJcsGlobalPlc(j.Placement2, j.Reference2)
 
-    # Convert each connector's local +Z axis into global coordinates.
+    # Convert each computed JCS's local +Z axis into global coordinates.
     z1 = g1.Rotation.multVec(Z)
     z2 = g2.Rotation.multVec(Z)
 
-    # Important:
+    # With the final clocking strategy, the computed JCS frames should always
+    # end up with their Z axes pointing the same way.
     #
-    # After the ROT_180_Y + ROT_180_Z clocking offset, the visually correct mate
-    # orientation corresponds to a negative dot product here.
+    # The visible/original LCS same-vs-opposite choice is handled by Offset2:
     #
-    # That feels backwards, but it matches FreeCAD's fixed-joint mating semantics
-    # for this setup. Earlier testing showed that using > 0 made the result flip
-    # the wrong way.
-    return z1.dot(z2) > 0  # Use <0 for Z in same direction, or >0 for Z in opposite directions
+    #   same_z_dir=True  -> Offset2 identity     -> visible Z same,     visible Y same
+    #   same_z_dir=False -> Offset2 ROT_180_Y    -> visible Z opposite, visible Y same
+    #
+    # So the check here no longer branches on same_z_dir.
+    return z1.dot(z2) > 0
 
 
 def flip_to_matching_z_direction(j):
@@ -147,9 +188,9 @@ def flip_to_matching_z_direction(j):
     # component back.
     #
     # So we:
-    #   1. Check the current direction.
+    #   1. Check the current computed JCS direction.
     #   2. Try one flip.
-    #   3. Keep it only if the direction is now correct.
+    #   3. Keep it only if the computed JCS direction is now correct.
     #   4. Otherwise flip back.
     if z_axes_are_correct_after_clocking(j):
         return False
@@ -158,7 +199,7 @@ def flip_to_matching_z_direction(j):
     j.Proxy.flipOnePart(j)
     update_jcs(j)
 
-    # Keep the trial flip only if it produced the desired Z relationship.
+    # Keep the trial flip only if it produced the desired JCS Z relationship.
     if z_axes_are_correct_after_clocking(j):
         return True
 
@@ -169,7 +210,7 @@ def flip_to_matching_z_direction(j):
     return False
 
 
-def clock(docs: list[App.DocumentObject]):
+def clock(docs: list[App.DocumentObject], same_z_dir: bool = SAME_Z_DIR):
     changed = 0
     skipped = 0
 
@@ -198,8 +239,24 @@ def clock(docs: list[App.DocumentObject]):
             # Offset2 receives the clocking correction. This is better than
             # writing directly to Placement2 because Placement2 is recomputed
             # by FreeCAD from Reference2 + Offset2.
+            #
+            # The important final rule is:
+            #
+            #   same_z_dir=True:
+            #       Offset2 = identity
+            #       visible/original LCS Z same
+            #       visible/original LCS Y same
+            #
+            #   same_z_dir=False:
+            #       Offset2 = ROT_180_Y
+            #       visible/original LCS Z opposite
+            #       visible/original LCS Y same
+            #
+            # Do not always apply ROT_180_Z here. ROT_180_Z flips Y, which is
+            # exactly what caused the "Z is opposite, but Y is also opposite"
+            # problem.
             j.Offset1 = App.Placement()
-            j.Offset2 = App.Placement(App.Vector(), ROT_180_Y.multiply(ROT_180_Z))
+            j.Offset2 = App.Placement(App.Vector(), clocking_rotation(same_z_dir))
 
             # Clear the computed placements before recomputing. These are not
             # the persistent "design intent"; they are FreeCAD's current JCS
@@ -208,13 +265,22 @@ def clock(docs: list[App.DocumentObject]):
             j.Placement2 = App.Placement()
 
             # Apply FreeCAD's own reverse-direction behavior only if the final
-            # global Z directions would otherwise be wrong.
+            # computed JCS Z directions would otherwise be wrong.
+            #
+            # Because flipOnePart() is a toggle, flip_to_matching_z_direction()
+            # tries it, checks the resulting global JCS directions, and toggles
+            # back if that trial was not the requested state.
             flipped = flip_to_matching_z_direction(j)
 
             # Mark the joint dirty so FreeCAD knows it changed.
             j.touch()
 
-            print('CLOCKED' + (' + FLIPPED' if flipped else ''))
+            print(
+                'CLOCKED'
+                + (' + FLIPPED' if flipped else '')
+                + (' + SAME_Z' if same_z_dir else ' + OPPOSITE_Z')
+                + ' + SAME_Y'
+            )
             changed += 1
 
         except Exception:

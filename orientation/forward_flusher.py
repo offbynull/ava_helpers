@@ -235,7 +235,7 @@ def run(doc: App.Document | None = None) -> None:
         App.Vector(0, 0, 0),
         App.Rotation(Z_AXIS, 0)
     )
-    App.ActiveDocument.recompute()
+    doc.recompute()
 
     face = sel_obj.Shape.getElement(face_name)
     edge = sel_obj.Shape.getElement(edge_name)
@@ -299,6 +299,6 @@ def run(doc: App.Document | None = None) -> None:
 
     move_obj.Placement = App.Placement(translation, final_rot)
 
-    App.ActiveDocument.recompute()
+    doc.recompute()
 
     log('Done: face is seated on XY; selected edge is X-parallel on the -Y side.')

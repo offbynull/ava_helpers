@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- cube -->
+  <path d="M21 17 L36 8 L53 18 L38 28 Z" transform="translate(10,5)"
+        fill-opacity="1" stroke="#007f00" stroke-width="2" />
+
+  <path d="M38 28 L53 18 L53 35 L38 45 Z" transform="translate(10,5)"
+        fill-opacity="1" stroke="#007f00" stroke-width="2" />
+
+  <path d="M21 17 L38 28 L38 45 L21 34 Z" transform="translate(10,5)"
+        fill-opacity="1"  stroke="#007f00" stroke-width="2" />
+
+  <!-- cube -->
+  <path d="M21 17 L36 8 L53 18 L38 28 Z" transform="translate(-10,-5)"
+        fill-opacity="0" stroke="#204a87" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <path d="M38 28 L53 18 L53 35 L38 45 Z"  transform="translate(-10,-5)"
+        fill-opacity="0" stroke="#204a87" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <path d="M21 17 L38 28 L38 45 L21 34 Z" transform="translate(-10,-5)"
+        fill-opacity="0"  stroke="#204a87" stroke-width="2"  stroke-dasharray="3,3"/>
+</svg>
