@@ -7,9 +7,10 @@ import FreeCADGui
 class FixedJointMaterGroupCommand:
     def GetCommands(self):
         from fixed_joint_mating import document_command_registerer, active_object_command_registerer, \
-            selected_objects_command_registerer
+            selected_objects_command_registerer, mate_point_creator_command_registerer
 
         return \
+            tuple(mate_point_creator_command_registerer.get_names()) + \
             tuple(selected_objects_command_registerer.get_names()) + \
             tuple(active_object_command_registerer.get_names()) + \
             tuple(document_command_registerer.get_names())
@@ -33,8 +34,9 @@ class FixedJointMaterGroupCommand:
 
 def register():
     from fixed_joint_mating import document_command_registerer, active_object_command_registerer, \
-        selected_objects_command_registerer
+        selected_objects_command_registerer, mate_point_creator_command_registerer
 
+    mate_point_creator_command_registerer.register()
     selected_objects_command_registerer.register()
     active_object_command_registerer.register()
     document_command_registerer.register()
