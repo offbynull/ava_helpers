@@ -10,7 +10,7 @@ class OriginCenterCommand:
         return {
             'MenuText': 'Center object',
             'ToolTip': 'Centers an object to the origin using its bounding box.',
-            'Accel': 'Shift+O,C',
+            'Accel': 'Shift+A,O,C',
             'Pixmap': str(
                 Path(App.getUserAppDataDir())
                 / 'Mod'

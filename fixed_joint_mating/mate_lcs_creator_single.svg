@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Lips icon">
+  <defs>
+    <g id="lips-icon" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 34c7-10 15-13 24-6 9-7 17-4 24 6-7 8-15 12-24 12S15 42 8 34Z" fill="#e85a75"/>
+      <path d="M8 34c8 2 16 2 24 0 8 2 16 2 24 0" stroke="#9f2f45" stroke-width="2"/>
+    </g>
+  </defs>
+  <use href="#lips-icon" transform="translate(0 0)"/>
+</svg>
