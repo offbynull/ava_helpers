@@ -6,7 +6,7 @@ import FreeCADGui as Gui
 from logger import log
 
 
-def run(doc: App.Document | None = None) -> None:
+def _run_internal(doc: App.Document) -> None:
     sel = Gui.Selection.getSelection()
     if len(sel) != 1:
         raise Exception("Select exactly one object.")
@@ -25,3 +25,15 @@ def run(doc: App.Document | None = None) -> None:
     App.ActiveDocument.recompute()
 
     log("Done: object centered at origin.")
+
+
+def run(doc: App.Document) -> App.DocumentObject | None:
+    doc.openTransaction('Center object')
+    try:
+        _run_internal(doc)
+        doc.commitTransaction()
+    except Exception:
+        doc.abortTransaction()
+        raise
+    finally:
+        doc.recompute()

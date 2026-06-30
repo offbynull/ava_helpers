@@ -6,15 +6,13 @@ import FreeCADGui
 #          loaded internally.
 class FixedJointMaterGroupCommand:
     def GetCommands(self):
-        from fixed_joint_mating import document_command_registerer, active_object_command_registerer, \
-            selected_objects_command_registerer, mate_point_creator_command_registerer
+        from fixed_joint_mating import mate_lcs_creator_command_registerer, mate_lcs_joiner_command_registerer, \
+            mate_lcs_selector_command_registerer
 
         return \
-            tuple(mate_point_creator_command_registerer.get_names()) + \
-            tuple(selected_objects_command_registerer.get_names()) + \
-            tuple(active_object_command_registerer.get_names()) + \
-            tuple(document_command_registerer.get_names())
-
+            tuple(mate_lcs_creator_command_registerer.get_names()) + \
+            tuple(mate_lcs_joiner_command_registerer.get_names()) + \
+            tuple(mate_lcs_selector_command_registerer.get_names())
 
     def GetResources(self):
         from pathlib import Path
@@ -33,13 +31,12 @@ class FixedJointMaterGroupCommand:
 
 
 def register():
-    from fixed_joint_mating import document_command_registerer, active_object_command_registerer, \
-        selected_objects_command_registerer, mate_point_creator_command_registerer
+    from fixed_joint_mating import mate_lcs_creator_command_registerer, mate_lcs_joiner_command_registerer, \
+        mate_lcs_selector_command_registerer
 
-    mate_point_creator_command_registerer.register()
-    selected_objects_command_registerer.register()
-    active_object_command_registerer.register()
-    document_command_registerer.register()
+    mate_lcs_creator_command_registerer.register()
+    mate_lcs_joiner_command_registerer.register()
+    mate_lcs_selector_command_registerer.register()
 
     FreeCADGui.addCommand(
         FixedJointMaterGroupCommand.__name__,

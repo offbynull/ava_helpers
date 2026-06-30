@@ -226,7 +226,7 @@ def choose_edge_forward_rotation(base_rot:App.Rotation, face: Any, edge: Any, ed
     return best
 
 
-def run(doc: App.Document | None = None) -> None:
+def run_internal(doc: App.Document) -> None:
     sel_obj, face_name, edge_name = get_selection()
     move_obj = get_placement_object(sel_obj)
 
@@ -302,3 +302,15 @@ def run(doc: App.Document | None = None) -> None:
     doc.recompute()
 
     log('Done: face is seated on XY; selected edge is X-parallel on the -Y side.')
+
+
+def run(doc: App.Document) -> App.DocumentObject | None:
+    doc.openTransaction('Center object')
+    try:
+        run_internal(doc)
+        doc.commitTransaction()
+    except Exception:
+        doc.abortTransaction()
+        raise
+    finally:
+        doc.recompute()

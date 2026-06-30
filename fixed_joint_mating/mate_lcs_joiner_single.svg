@@ -10,7 +10,8 @@
   </defs>
 
 
-  <use href="#heart" transform="scale(2.1) translate(-10 -10)"/>
-  <use href="#lips-icon" transform="rotate(-22 32 32) scale(.9) translate(0 -20)"/>
+  <use href="#heart" transform="scale(2) translate(-16 -10)"/>
+  <use href="#lips-icon" transform="rotate(-22 32 32) scale(.55) translate(10 -20)"/>
+  <use href="#lips-icon" transform="rotate(22 32 32) scale(.55) translate(45 -20)"/>
 
 </svg>

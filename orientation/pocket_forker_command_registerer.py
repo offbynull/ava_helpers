@@ -4,21 +4,20 @@ import FreeCADGui
 
 # WARNING: None of the imports outside are available, and __file__ isn't available either? That's why imports are
 #          loaded internally.
-class ForwardFlusherCommand:
+class ForkerCommand:
     def GetResources(self):
         from pathlib import Path
         return {
-            'MenuText': 'Forward-flush object',
-            'ToolTip': 'Selecting a face along with an edge on that face and launching this command will make it so '
-                       'that the object is reoriented such that the face sits flush on the XY-plane and rotated such'
-                       'that edge faces the forward direction (faces -Y and is parallel to the X-axis).',
-            'Accel': 'Shift+A,O,F',
+            'MenuText': 'Pocket-fork object',
+            'ToolTip': 'Fork an object by creating a new body that has that object as its base feature and apply a '
+                       'pocket.',
+            'Accel': 'Shift+A,F,P',
             'Pixmap': str(
                 Path(App.getUserAppDataDir())
                 / 'Mod'
                 / 'ava_helpers'
                 / 'orientation'
-                / 'forward_flusher.svg'
+                / 'pocket_forker.svg'
             )
         }
 
@@ -27,9 +26,9 @@ class ForwardFlusherCommand:
         import traceback
         from logger import error
 
-        from orientation import forward_flusher
+        from orientation import pocket_forker
         try:
-            forward_flusher.run(App.ActiveDocument)
+            pocket_forker.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -40,7 +39,7 @@ class ForwardFlusherCommand:
 
 
 COMMANDS = [
-    ForwardFlusherCommand,
+    ForkerCommand,
 ]
 
 
