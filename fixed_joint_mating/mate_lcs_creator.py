@@ -53,7 +53,7 @@ def run_create_array(doc: App.Document | None = None):
 
             self.space_between = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
             self.space_between.setProperty('unit', 'mm')
-            self.space_between.setProperty('value', App.Units.Quantity(2))
+            self.space_between.setProperty('value', App.Units.Quantity(99999999, 'mm'))
             self.space_between.valueChanged.connect(self.preview)
             layout.addRow('Space between:', self.space_between)
 
@@ -64,7 +64,7 @@ def run_create_array(doc: App.Document | None = None):
             self.z_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
             for w in (self.x_offset, self.y_offset, self.z_offset):
                 w.setProperty('unit', 'mm')
-                w.setProperty('value', App.Units.Quantity(0))
+                w.setProperty('value', App.Units.Quantity(0, 'mm'))
                 w.valueChanged.connect(self.preview)
             self.global_space_offset = QtGui.QCheckBox('Global')
             self.global_space_offset.setChecked(False)
@@ -84,9 +84,9 @@ def run_create_array(doc: App.Document | None = None):
             name_prefix = self.name_prefix.text()
             length = self.space_between.property('value')
             offset = Offset(
-                x=self.x_offset.property('value'),
-                y=self.y_offset.property('value'),
-                z=self.z_offset.property('value'),
+                x=self.x_offset.property('value').getValueAs('mm').Value,
+                y=self.y_offset.property('value').getValueAs('mm').Value,
+                z=self.z_offset.property('value').getValueAs('mm').Value,
                 coordinate_system_application=OffsetApplicationCoordinateSystem.GLOBAL if self.global_space_offset.isChecked() else OffsetApplicationCoordinateSystem.LCS,
             )
             mater_lcs_array_create_helpers.create(doc, selection, name_prefix, length, offset)

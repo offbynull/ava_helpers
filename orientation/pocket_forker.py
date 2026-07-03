@@ -73,7 +73,7 @@ def run(doc: App.Document) -> None:
             self.label_suffix = QtGui.QLineEdit()
             self.label_suffix.setText('')
             self.label_suffix.setPlaceholderText('Enter label suffix')
-            self.label_suffix.textChanged.connect(self.preview)
+            # self.label_suffix.textChanged.connect(self.preview)
             self.label_suffix.editingFinished.connect(self.preview)
             layout.addRow('Label suffix:', self.label_suffix)
 

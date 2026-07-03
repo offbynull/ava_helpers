@@ -5,12 +5,15 @@ from fixed_joint_mating.mater_lcs.mater_lcs_array_parameters import Selection, O
 
 def update_inputs_within_varset(
         doc: App.Document,
-        name: str,
+        name_or_varset: str | App.DocumentObject,
         selection: Selection,
         spacing: float,
         offset: Offset,
 ):
-    varset = doc.getObject(f'{name}_Inputs')
+    if isinstance(name_or_varset, str):
+        varset = doc.getObject(f'{name_or_varset}_Inputs')
+    else:
+        varset = name_or_varset
 
     src = selection.source
     dst = selection.destination
@@ -52,7 +55,7 @@ def write_inputs_to_varset(
     varset.addProperty('App::PropertyLength', 'OffsetZ', 'Inputs', '')
     varset.addProperty('App::PropertyBool', 'GlobalOffset', '')
 
-    update_inputs_within_varset(doc, name, selection, spacing, offset)
+    update_inputs_within_varset(doc, varset, selection, spacing, offset)
 
     return varset
 

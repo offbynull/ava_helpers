@@ -7,19 +7,20 @@ import FreeCADGui
 class FixedJointMaterGroupCommand:
     def GetCommands(self):
         from fixed_joint_mating import mate_lcs_creator_command_registerer, mate_lcs_joiner_command_registerer, \
-            mate_lcs_selector_command_registerer
+            mate_lcs_selector_command_registerer, mate_lcs_visibility_command_registerer
 
         return \
             tuple(mate_lcs_creator_command_registerer.get_names()) + \
             tuple(mate_lcs_joiner_command_registerer.get_names()) + \
-            tuple(mate_lcs_selector_command_registerer.get_names())
+            tuple(mate_lcs_selector_command_registerer.get_names()) + \
+            tuple(mate_lcs_visibility_command_registerer.get_names())
 
     def GetResources(self):
         from pathlib import Path
 
         return {
-            'MenuText': 'Mate LCS FixedJoints',
-            'ToolTip': 'Reorients LCSes on FixedJoints.',
+            'MenuText': 'Mater LCS',
+            'ToolTip': 'Mater LCS operations.',
             'Pixmap': str(
                 Path(App.getUserAppDataDir())
                 / 'Mod'
@@ -32,11 +33,12 @@ class FixedJointMaterGroupCommand:
 
 def register():
     from fixed_joint_mating import mate_lcs_creator_command_registerer, mate_lcs_joiner_command_registerer, \
-        mate_lcs_selector_command_registerer
+        mate_lcs_selector_command_registerer, mate_lcs_visibility_command_registerer
 
     mate_lcs_creator_command_registerer.register()
     mate_lcs_joiner_command_registerer.register()
-    mate_lcs_selector_command_registerer.register()
+    mate_lcs_selector_command_registerer.register(),
+    mate_lcs_visibility_command_registerer.register()
 
     FreeCADGui.addCommand(
         FixedJointMaterGroupCommand.__name__,
