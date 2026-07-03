@@ -80,7 +80,8 @@ def run(doc: App.Document) -> None:
             self.pocket_length = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
             self.pocket_length.setProperty('unit', 'mm')
             self.pocket_length.setProperty('value', App.Units.Quantity(1, 'mm'))
-            self.pocket_length.valueChanged.connect(self.preview)
+            # self.pocket_length.valueChanged.connect(self.preview)
+            self.pocket_length.editingFinished.connect(self.preview)
             layout.addRow('Pocket length:', self.pocket_length)
 
             doc.openTransaction('Pocket fork object')

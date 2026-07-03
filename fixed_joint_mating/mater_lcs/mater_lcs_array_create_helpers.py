@@ -19,7 +19,8 @@ def create(
         selection: Selection,
         name_prefix: str,
         spacing: float,
-        offset: Offset
+        offset: Offset,
+        store_varset: bool
 ) -> None:
     src = selection.source
     src_vertex_obj, src_vertex_name = selection.source_vertex
@@ -28,7 +29,8 @@ def create(
     dst = selection.destination
     dst_vertex_obj, _ = selection.destination_vertex
 
-    write_inputs_to_varset(doc, f'{name_prefix}_{src.Label}_{MATER_LCS_IDENTIFIER}', selection, spacing, offset)
+    if store_varset:
+        write_inputs_to_varset(doc, f'{name_prefix}_{src.Label}_{MATER_LCS_IDENTIFIER}', selection, spacing, offset)
 
     ret = _vector_pair_to_points_direction_length(src_vertex_obj, dst_vertex_obj)
     if ret is None:

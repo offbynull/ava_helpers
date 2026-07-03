@@ -34,7 +34,7 @@ class MatePointCreatorCommand:
         
         from fixed_joint_mating import mate_lcs_creator
         try:
-            mate_lcs_creator.run_create(App.ActiveDocument)
+            mate_lcs_creator.run_create_single(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())

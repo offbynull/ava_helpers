@@ -12,7 +12,7 @@ from fixed_joint_mating.mater_lcs.mater_lcs_array_create_helpers import extract_
 from logger import warn
 
 
-def run_create(doc: App.Document | None = None):
+def run_create_single(doc: App.Document | None = None):
     if doc is None:
         warn('AvaHelpersWorkbench: no active document.')
         return
@@ -47,14 +47,15 @@ def run_create_array(doc: App.Document | None = None):
             self.name_prefix = QtGui.QLineEdit()
             self.name_prefix.setText(''.join(random.choices(string.ascii_letters + string.digits, k=6)))
             self.name_prefix.setPlaceholderText('Enter name prefix')
-            self.name_prefix.textChanged.connect(self.preview)
+            # self.name_prefix.textChanged.connect(self.preview)
             self.name_prefix.editingFinished.connect(self.preview)
             layout.addRow('Name prefix:', self.name_prefix)
 
             self.space_between = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
             self.space_between.setProperty('unit', 'mm')
             self.space_between.setProperty('value', App.Units.Quantity(99999999, 'mm'))
-            self.space_between.valueChanged.connect(self.preview)
+            # self.space_between.valueChanged.connect(self.preview)
+            self.space_between.editingFinished.connect(self.preview)
             layout.addRow('Space between:', self.space_between)
 
             layout.addRow(QtGui.QLabel(''))  # blank row as a spacer
@@ -65,7 +66,8 @@ def run_create_array(doc: App.Document | None = None):
             for w in (self.x_offset, self.y_offset, self.z_offset):
                 w.setProperty('unit', 'mm')
                 w.setProperty('value', App.Units.Quantity(0, 'mm'))
-                w.valueChanged.connect(self.preview)
+                # w.valueChanged.connect(self.preview)
+                w.editingFinished.connect(self.preview)
             self.global_space_offset = QtGui.QCheckBox('Global')
             self.global_space_offset.setChecked(False)
             self.global_space_offset.stateChanged.connect(self.preview)
@@ -73,6 +75,12 @@ def run_create_array(doc: App.Document | None = None):
             layout.addRow('Y offset:', self.y_offset)
             layout.addRow('Z offset:', self.z_offset)
             layout.addRow('Global:', self.global_space_offset)
+
+            layout.addRow(QtGui.QLabel(''))  # blank row as a spacer
+
+            self.store_varset = QtGui.QCheckBox('Store varset')
+            self.store_varset.setChecked(False)
+            self.store_varset.stateChanged.connect(self.preview)
 
             self.doc.openTransaction('Create mater LCS array')
             self.preview()  # Initial launch
@@ -89,6 +97,7 @@ def run_create_array(doc: App.Document | None = None):
                 z=self.z_offset.property('value').getValueAs('mm').Value,
                 coordinate_system_application=OffsetApplicationCoordinateSystem.GLOBAL if self.global_space_offset.isChecked() else OffsetApplicationCoordinateSystem.LCS,
             )
+            store_varset = self.store_varset.isChecked()
             mater_lcs_array_create_helpers.create(doc, selection, name_prefix, length, offset)
 
             self.doc.recompute()
