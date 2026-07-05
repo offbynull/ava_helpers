@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <g id="lumber">
+            <polygon points="10,24 46,24 56,32 20,32" fill="#c28a4a"/>
+            <polygon points="20,32 56,32 56,44 20,44" fill="#a96f34"/>
+            <polygon points="10,24 20,32 20,44 10,36" fill="#8b572a"/>
+            <path d="M16 28c8-3 18 2 28-1M23 37c9-2 17 3 28 0M25 41c7 1 14-2 24 0" stroke="#6f3f1d" stroke-width="1.5"
+                  fill="none" opacity=".55"/>
+        </g>
+    </defs>
+    <use href="#lumber" transform="translate(0 0) scale(1.0 1.0)"/>
+</svg>

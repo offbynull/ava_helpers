@@ -1,0 +1,30 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <g id="hammer">
+            <g id="head">
+
+                <!-- Neck / socket -->
+                <rect x="24" y="18" width="12" height="14" rx="2" fill="#666"/>
+                <!-- Hammering end -->
+                <rect x="30" y="10" width="15" height="12" rx="2" fill="#777"/>
+
+                <!-- Curved claw end -->
+                <path d="M30 10
+             C20 8, 12 12, 9 20
+             C14 18, 19 18, 24 22
+             L30 22 Z"
+                      fill="#777"/>
+
+                <!-- Highlights -->
+                <path d="M33 13 H42" stroke="#AAA" stroke-width="2" opacity=".6"/>
+            </g>
+            <!-- Handle -->
+            <g id="handle">
+                <rect x="23" y="28" width="13" height="30" rx="3" fill="#8B5A2B"/>
+                <path d="M30 31 V55" stroke="#5C3418" stroke-width="2" opacity=".55"/>
+            </g>
+        </g>
+    </defs>
+
+    <use href="#hammer" transform="translate(0 -10) scale(1.0 1.0)"/>
+</svg>
