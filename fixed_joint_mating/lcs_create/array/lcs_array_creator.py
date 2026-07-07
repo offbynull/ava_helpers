@@ -1,39 +1,86 @@
-import string
+# https://chatgpt.com/share/6a42b763-d3c4-83ea-a8ab-978288c3d377
+import math
 import random
+import string
 
 import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtGui
 
-from fixed_joint_mating.mater_lcs import mater_lcs_select_helpers, mater_lcs_single_create_helpers, \
-    mater_lcs_array_create_helpers
-from fixed_joint_mating.mater_lcs.mater_lcs_array_parameters import Offset, OffsetApplicationCoordinateSystem
-from fixed_joint_mating.mater_lcs.mater_lcs_array_create_helpers import extract_selection_inputs
-from logger import warn
+from fixed_joint_mating.lcs_utils import lcs_creator
+from fixed_joint_mating.lcs_create.array._array_parameter_storage import write_inputs_to_varset
+from fixed_joint_mating.lcs_create.array._utils import _attach_mater_and_orient, \
+    _vector_pair_to_points_direction_length
+from fixed_joint_mating.lcs_utils.lcs_identifier import MATER_LCS_IDENTIFIER
+from fixed_joint_mating.lcs_create.array import mater_lcs_array_create_helpers
+from fixed_joint_mating.lcs_create.array import _selection
+from fixed_joint_mating.lcs_create.array._array_parameters import Offset
+from fixed_joint_mating.lcs_create.array._array_parameters import OffsetApplicationCoordinateSystem
+from logger import error, log, warn
 
 
-def run_create_single(doc: App.Document | None = None):
+def _create(
+        doc: App.Document,
+        selection: _selection.Selection,
+        name_prefix: str,
+        spacing: float,
+        offset: Offset,
+        store_varset: bool
+) -> None:
+    src = selection.source
+    src_vertex_obj, src_vertex_name = selection.source_vertex
+    _, src_face_name = selection.source_face
+    _, src_edge_name = selection.source_edge if selection.source_edge else (None, None)
+    dst = selection.destination
+    dst_vertex_obj, _ = selection.destination_vertex
+
+    if store_varset:
+        write_inputs_to_varset(doc, f'{name_prefix}_{src.Label}_{MATER_LCS_IDENTIFIER}', selection, spacing, offset)
+
+    ret = _vector_pair_to_points_direction_length(src_vertex_obj, dst_vertex_obj)
+    if ret is None:
+        error('Unable to extract point and direction.')
+        return
+    p0, p1, direction, length = ret
+
+    if spacing == 0:
+        error('Spacing cannot be zero.')
+        return
+    if spacing < 0:
+        error('Spacing cannot be negative.')
+        return
+
+    count = int(math.floor(length / spacing)) + 1
+
+    for mater_lcs_instance in range(count):
+        mater_lcs = lcs_creator.run(
+            doc=doc,
+            name=f'{name_prefix}_{MATER_LCS_IDENTIFIER}_{mater_lcs_instance:03d}'
+        )
+        _attach_mater_and_orient(
+            doc,
+            p0,
+            direction,
+            mater_lcs,
+            mater_lcs_instance,
+            offset,
+            spacing,
+            src,
+            src_edge_name,
+            src_face_name,
+            src_vertex_name
+        )
+
+    doc.recompute()
+    log(f'Created {count} maters.')
+
+
+def run(doc: App.Document | None = None):
     if doc is None:
         warn('AvaHelpersWorkbench: no active document.')
         return
 
-    doc.openTransaction('Create mater LCS')
-    try:
-        mater_lcs_single_create_helpers.create_and_attach(doc)
-        doc.commitTransaction()
-    except Exception:
-        doc.abortTransaction()
-        raise
-    finally:
-        doc.recompute()
-
-
-def run_create_array(doc: App.Document | None = None):
-    if doc is None:
-        warn('AvaHelpersWorkbench: no active document.')
-        return
-
-    selection = extract_selection_inputs(doc)
+    selection = _selection.extract_selection_inputs(doc)
     if selection is None:
         return
 
@@ -98,7 +145,7 @@ def run_create_array(doc: App.Document | None = None):
                 coordinate_system_application=OffsetApplicationCoordinateSystem.GLOBAL if self.global_space_offset.isChecked() else OffsetApplicationCoordinateSystem.LCS,
             )
             store_varset = self.store_varset.isChecked()
-            mater_lcs_array_create_helpers.create(doc, selection, name_prefix, length, offset)
+            _create(doc, selection, name_prefix, length, offset, store_varset)
 
             self.doc.recompute()
 
@@ -113,22 +160,3 @@ def run_create_array(doc: App.Document | None = None):
             return True
 
     Gui.Control.showDialog(ArrayTaskPanel())
-
-
-def run_update_array(doc: App.Document | None = None):
-    if doc is None:
-        warn('AvaHelpersWorkbench: no active document.')
-        return
-
-    mater_lcses = mater_lcs_select_helpers.pull_selected_objects_that_lead_to_mater_lcs()
-    mater_lcses = [l.obj for l in mater_lcses]
-
-    doc.openTransaction('Update mater LCS array')
-    try:
-        mater_lcs_array_create_helpers.update(doc, mater_lcses)
-        doc.commitTransaction()
-    except Exception:
-        doc.abortTransaction()
-        raise
-    finally:
-        doc.recompute()

@@ -16,7 +16,8 @@ class MatePointVisibilityChangerCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_visibility_changer.svg'
+                / 'lcs_visibility'
+                / 'lcs_visibility_changer.svg'
             )
         }
 
@@ -25,10 +26,9 @@ class MatePointVisibilityChangerCommand:
         import FreeCAD as App
         import traceback
 
-        
-        from fixed_joint_mating import mate_lcs_visibility
+        from fixed_joint_mating.lcs_visibility import lcs_visibility
         try:
-            mate_lcs_visibility.run_change(App.ActiveDocument)
+            lcs_visibility.run_change(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -52,7 +52,8 @@ class MatePointVisibilityShowerCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_visibility_shower.svg'
+                / 'lcs_visibility'
+                / 'lcs_visibility_shower.svg'
             )
         }
 
@@ -61,9 +62,9 @@ class MatePointVisibilityShowerCommand:
         import FreeCAD as App
         import traceback
 
-        from fixed_joint_mating import mate_lcs_visibility
+        from fixed_joint_mating.lcs_visibility import lcs_visibility
         try:
-            mate_lcs_visibility.run_show_all(App.ActiveDocument)
+            lcs_visibility.run_show_all(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -87,7 +88,8 @@ class MatePointVisibilityHiderCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_visibility_hider.svg'
+                / 'lcs_visibility'
+                / 'lcs_visibility_hider.svg'
             )
         }
 
@@ -96,9 +98,9 @@ class MatePointVisibilityHiderCommand:
         import FreeCAD as App
         import traceback
 
-        from fixed_joint_mating import mate_lcs_visibility
+        from fixed_joint_mating.lcs_visibility import lcs_visibility
         try:
-            mate_lcs_visibility.run_hide_all(App.ActiveDocument)
+            lcs_visibility.run_hide_all(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())

@@ -16,7 +16,8 @@ class MateLCSSelectorCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_selector.svg'
+                / 'lcs_select'
+                / 'lcs_selector.svg'
             )
         }
 
@@ -25,9 +26,9 @@ class MateLCSSelectorCommand:
         import traceback
         from logger import error
 
-        from fixed_joint_mating import mate_lcs_selector
+        from fixed_joint_mating.lcs_select import lcs_selector
         try:
-            mate_lcs_selector.run(App.ActiveDocument)
+            lcs_selector.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())

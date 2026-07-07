@@ -6,14 +6,16 @@ import FreeCADGui
 #          loaded internally.
 class FixedJointMaterGroupCommand:
     def GetCommands(self):
-        from fixed_joint_mating import mate_lcs_creator_command_registerer, mate_lcs_joiner_command_registerer, \
-            mate_lcs_selector_command_registerer, mate_lcs_visibility_command_registerer
+        from fixed_joint_mating.lcs_visibility import lcs_visibility_command_registerer
+        from fixed_joint_mating.lcs_select import lcs_selector_command_registerer
+        from fixed_joint_mating.lcs_join import lcs_join_command_registerer
+        from fixed_joint_mating.lcs_create import lcs_create_command_registerer
 
         return \
-            tuple(mate_lcs_creator_command_registerer.get_names()) + \
-            tuple(mate_lcs_joiner_command_registerer.get_names()) + \
-            tuple(mate_lcs_selector_command_registerer.get_names()) + \
-            tuple(mate_lcs_visibility_command_registerer.get_names())
+            tuple(lcs_create_command_registerer.get_names()) + \
+            tuple(lcs_join_command_registerer.get_names()) + \
+            tuple(lcs_selector_command_registerer.get_names()) + \
+            tuple(lcs_visibility_command_registerer.get_names())
 
     def GetResources(self):
         from pathlib import Path
@@ -32,13 +34,15 @@ class FixedJointMaterGroupCommand:
 
 
 def register():
-    from fixed_joint_mating import mate_lcs_creator_command_registerer, mate_lcs_joiner_command_registerer, \
-        mate_lcs_selector_command_registerer, mate_lcs_visibility_command_registerer
+    from fixed_joint_mating.lcs_visibility import lcs_visibility_command_registerer
+    from fixed_joint_mating.lcs_select import lcs_selector_command_registerer
+    from fixed_joint_mating.lcs_join import lcs_join_command_registerer
+    from fixed_joint_mating.lcs_create import lcs_create_command_registerer
 
-    mate_lcs_creator_command_registerer.register()
-    mate_lcs_joiner_command_registerer.register()
-    mate_lcs_selector_command_registerer.register(),
-    mate_lcs_visibility_command_registerer.register()
+    lcs_create_command_registerer.register()
+    lcs_join_command_registerer.register()
+    lcs_selector_command_registerer.register(),
+    lcs_visibility_command_registerer.register()
 
     FreeCADGui.addCommand(
         FixedJointMaterGroupCommand.__name__,

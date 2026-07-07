@@ -2,7 +2,7 @@ import FreeCAD as App
 import FreeCADGui
 
 
-def register(parent: FreeCADGui.Workbench):
+def register():
     from fixed_joint_mating.group_command_registerer import FixedJointMaterGroupCommand
     from fixed_joint_mating import group_command_registerer
 
@@ -12,6 +12,9 @@ def register(parent: FreeCADGui.Workbench):
         FixedJointMaterGroupCommand.__name__,
         FixedJointMaterGroupCommand(),
     )
+
+def append(parent: FreeCADGui.Workbench):
+    from fixed_joint_mating.group_command_registerer import FixedJointMaterGroupCommand
 
     parent.appendToolbar(
         'Ava Helpers',

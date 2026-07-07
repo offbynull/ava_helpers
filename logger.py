@@ -1,6 +1,7 @@
 from typing import Any
 
 import FreeCAD as App
+import FreeCADGui as Gui
 
 
 def log(text: Any) -> None:
@@ -11,3 +12,6 @@ def warn(text: Any) -> None:
 
 def error(text: Any) -> None:
     App.Console.PrintWarning(str(text) + "\n")
+
+def status(msg):
+    Gui.getMainWindow().statusBar().showMessage(msg)

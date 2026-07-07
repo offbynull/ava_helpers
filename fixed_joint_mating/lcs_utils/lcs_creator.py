@@ -1,6 +1,6 @@
 import FreeCAD as App
 
-from fixed_joint_mating.mater_lcs.mater_lcs_identifier import MATER_LCS_IDENTIFIER
+from fixed_joint_mating.lcs_utils.lcs_identifier import MATER_LCS_IDENTIFIER
 
 _ORANGE = (1.0, 0.647, 0.0)
 _PURPLE  = (0.5, 0.0, 0.5)

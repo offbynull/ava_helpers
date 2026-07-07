@@ -2,7 +2,7 @@ import FreeCAD as App
 import FreeCADGui
 
 
-def register(parent: FreeCADGui.Workbench):
+def register():
     from construction.group_command_registerer import ConstructionGroupCommand
     from construction import group_command_registerer
 
@@ -12,6 +12,9 @@ def register(parent: FreeCADGui.Workbench):
         ConstructionGroupCommand.__name__,
         ConstructionGroupCommand(),
     )
+
+def append(parent: FreeCADGui.Workbench):
+    from construction.group_command_registerer import ConstructionGroupCommand
 
     parent.appendToolbar(
         'Ava Helpers',

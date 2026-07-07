@@ -4,7 +4,7 @@ import sys
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from fixed_joint_mating.mater_lcs.mater_lcs_select_helpers import MaterLCSSelection
+from fixed_joint_mating.lcs_utils.lcs_selection_helpers import MaterLCSSelection
 from logger import error, log
 
 asm_path = os.path.join(App.getHomePath(), 'Mod', 'Assembly')

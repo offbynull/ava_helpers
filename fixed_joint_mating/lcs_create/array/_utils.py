@@ -2,9 +2,9 @@
 
 import FreeCAD as App
 
-from fixed_joint_mating.mater_lcs import mater_lcs_attacher, mater_lcs_attachment_y_facing_positive_z_orienter, \
-    mater_lcs_attachment_y_facing_edge_orienter, mater_lcs_detacher
-from fixed_joint_mating.mater_lcs.mater_lcs_array_parameters import Offset, OffsetApplicationCoordinateSystem
+from fixed_joint_mating.lcs_utils import lcs_attacher, lcs_attachment_y_facing_positive_z_orienter, \
+    lcs_attachment_y_facing_edge_orienter, lcs_detacher
+from fixed_joint_mating.lcs_create.array._array_parameters import Offset, OffsetApplicationCoordinateSystem
 from logger import error
 
 
@@ -40,11 +40,11 @@ def _attach_mater_and_orient(
         src_face_name: str,
         src_vertex_name: str
 ) -> None:
-    mater_lcs_attacher.run(doc, mater_lcs, src, src_face_name, src_vertex_name)
+    lcs_attacher.run(doc, mater_lcs, src, src_face_name, src_vertex_name)
     if src_edge_name is not None:
-        mater_lcs_attachment_y_facing_edge_orienter.run(doc, mater_lcs, src, src_face_name, src_edge_name)
+        lcs_attachment_y_facing_edge_orienter.run(doc, mater_lcs, src, src_face_name, src_edge_name)
     else:
-        mater_lcs_attachment_y_facing_positive_z_orienter.run(doc, mater_lcs)
+        lcs_attachment_y_facing_positive_z_orienter.run(doc, mater_lcs)
 
     doc.recompute()  # important: make attachment placement valid
 
@@ -68,4 +68,4 @@ def _attach_mater_and_orient(
 
     doc.recompute()  # important: make attachment placement valid
 
-    mater_lcs_detacher.run(doc, mater_lcs)
+    lcs_detacher.run(doc, mater_lcs)

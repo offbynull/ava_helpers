@@ -4,7 +4,7 @@ import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtGui
 
-from fixed_joint_mating.selection import selectable_enumerator
+from fixed_joint_mating.lcs_select import _selectable_enumerator
 from logger import warn, error
 
 
@@ -60,7 +60,7 @@ def run(doc: App.Document | None = None):
             pattern1 = re.compile(self.pattern1.text())
             pattern2 = re.compile(self.pattern2.text())
 
-            selectable_items = selectable_enumerator.run(doc)
+            selectable_items = _selectable_enumerator.run(doc)
             found1_list = []
             found2_list = []
             for item in selectable_items:

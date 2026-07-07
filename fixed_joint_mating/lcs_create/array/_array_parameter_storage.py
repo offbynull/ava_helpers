@@ -1,12 +1,13 @@
 import FreeCAD as App
 
-from fixed_joint_mating.mater_lcs.mater_lcs_array_parameters import Selection, Offset, OffsetApplicationCoordinateSystem
+from fixed_joint_mating.lcs_create.array import _selection
+from fixed_joint_mating.lcs_create.array._array_parameters import Offset, OffsetApplicationCoordinateSystem
 
 
 def update_inputs_within_varset(
         doc: App.Document,
         name_or_varset: str | App.DocumentObject,
-        selection: Selection,
+        selection: _selection.Selection,
         spacing: float,
         offset: Offset,
 ):
@@ -39,7 +40,7 @@ def update_inputs_within_varset(
 def write_inputs_to_varset(
         doc: App.Document,
         name: str,
-        selection: Selection,
+        selection: _selection.Selection,
         spacing: float,
         offset: Offset,
 ):
@@ -60,7 +61,7 @@ def write_inputs_to_varset(
     return varset
 
 
-def read_inputs_from_varset(doc: App.Document, name: str) -> tuple[Selection, str, float, Offset] | None:
+def read_inputs_from_varset(doc: App.Document, name: str) -> tuple[_selection.Selection, str, float, Offset] | None:
     varset = doc.getObject(f'{name}_Inputs')
 
     src, (src_vertex_name, ) = varset.SourceVertex
@@ -69,7 +70,7 @@ def read_inputs_from_varset(doc: App.Document, name: str) -> tuple[Selection, st
     dst, (dst_vertex_name, ) = varset.DestinationVertex
 
     return (
-        Selection(
+        _selection.Selection(
             src,
             (src.getSubObject(src_face_name), src_face_name),
             (src.getSubObject(src_vertex_name), src_vertex_name),

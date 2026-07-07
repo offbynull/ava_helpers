@@ -16,7 +16,8 @@ class MatePointSingleJoinerCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_joiner_single.svg'
+                / 'lcs_join'
+                / 'lcs_joiner_single.svg'
             )
         }
 
@@ -26,9 +27,9 @@ class MatePointSingleJoinerCommand:
         import traceback
 
         
-        from fixed_joint_mating import mate_lcs_joiner
+        from fixed_joint_mating.lcs_join import lcs_joiner
         try:
-            mate_lcs_joiner.run_single(App.ActiveDocument)
+            lcs_joiner.run_single(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -55,7 +56,8 @@ class MatePointMultiJoinerCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_joiner_multi.svg'
+                / 'lcs_join'
+                / 'lcs_joiner_multi.svg'
             )
         }
 
@@ -64,9 +66,9 @@ class MatePointMultiJoinerCommand:
         import FreeCAD as App
         import traceback
 
-        from fixed_joint_mating import mate_lcs_joiner
+        from fixed_joint_mating.lcs_join import lcs_joiner
         try:
-            mate_lcs_joiner.run_multi(App.ActiveDocument)
+            lcs_joiner.run_multi(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())

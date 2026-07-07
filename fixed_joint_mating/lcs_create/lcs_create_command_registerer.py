@@ -4,13 +4,13 @@ import FreeCADGui
 
 # WARNING: None of the imports outside are available, and __file__ isn't available either? That's why imports are
 #          loaded internally.
-class MatePointCreatorCommand:
+class MatePointVertexCreatorCommand:
     def GetResources(self):
         from pathlib import Path
         return {
-            'MenuText': 'Create mate point',
-            'ToolTip': 'Create a mater LCS and attach it to the selected face and vertex using "XY tangent to '
-                       'surface" attachment mode . The face and vertex must be on the same object. The resulting LCS '
+            'MenuText': 'Create mate point on vertices',
+            'ToolTip': 'Create a mater LCS and attach it to the selected face and vertices using "XY tangent to '
+                       'surface" attachment mode. The face and vertices must be on the same object. The resulting LCS '
                        'will be oriented such that the Z-axis maps to the face\'s normal vector.\n'
                        '\n'
                        'If an edge is also selected, the Y-axis of the LCS will point towards that edge. Otherwise, '
@@ -22,7 +22,9 @@ class MatePointCreatorCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_creator_single.svg'
+                / 'lcs_create'
+                / 'vertex'
+                / 'lcs_creator_vertex.svg'
             )
         }
 
@@ -31,10 +33,53 @@ class MatePointCreatorCommand:
         import FreeCAD as App
         import traceback
 
-        
-        from fixed_joint_mating import mate_lcs_creator
+        from fixed_joint_mating.lcs_create.vertex import lcs_creator_vertex
         try:
-            mate_lcs_creator.run_create_single(App.ActiveDocument)
+            lcs_creator_vertex.run(App.ActiveDocument)
+        except Exception as exc:
+            error(f'Failed: {exc}')
+            error(traceback.format_exc())
+            raise
+
+    def IsActive(self):
+        return True
+
+
+# WARNING: None of the imports outside are available, and __file__ isn't available either? That's why imports are
+#          loaded internally.
+class MatePointPickingCreatorCommand:
+    def GetResources(self):
+        from pathlib import Path
+        return {
+            'MenuText': 'Create mate point on face (picking)',
+            'ToolTip': 'Create mater LCSes by clicking on a face, where the LCSes are created relative to a vertex on '
+                       'that face. Each LCS attaches to the selected face and vertex using "XY tangent to surface" '
+                       'attachment mode. The face and vertex must be on the same object. The resulting LCS will be '
+                       'oriented such that the Z-axis maps to the face\'s normal vector.\n'
+                       '\n'
+                       'If an edge is also selected, the Y-axis of the LCS will point towards that edge. Otherwise, '
+                       'the Y-axis will point as close as possible to the parent coordinate system\'s positive Z '
+                       'direction.',
+            'Accel': 'Shift+A, M, M',
+            'Pixmap': str(
+                Path(App.getUserAppDataDir())
+                / 'Mod'
+                / 'ava_helpers'
+                / 'fixed_joint_mating'
+                / 'lcs_create'
+                / 'pick'
+                / 'lcs_creator_pick.svg'
+            )
+        }
+
+    def Activated(self):
+        from logger import error
+        import FreeCAD as App
+        import traceback
+
+        from fixed_joint_mating.lcs_create.pick import lcs_creator_pick
+        try:
+            lcs_creator_pick.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -65,13 +110,15 @@ class MatePointArrayCreatorCommand:
                        '\n'
                        'The second vertex does not have to be on the same object as the first. The maters are '
                        'created along the line made up by the two vertices, from the first vertex to the second.',
-            'Accel': 'Shift+A, M, M',
+            'Accel': 'Shift+A, M, A',
             'Pixmap': str(
                 Path(App.getUserAppDataDir())
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_creator_multi.svg'
+                / 'lcs_create'
+                / 'array'
+                / 'lcs_array_creator.svg'
             )
         }
 
@@ -80,10 +127,9 @@ class MatePointArrayCreatorCommand:
         import FreeCAD as App
         import traceback
 
-
-        from fixed_joint_mating import mate_lcs_creator
+        from fixed_joint_mating.lcs_create.array import lcs_array_creator
         try:
-            mate_lcs_creator.run_create_array(App.ActiveDocument)
+            lcs_array_creator.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -107,7 +153,9 @@ class MatePointArrayUpdatorCommand:
                 / 'Mod'
                 / 'ava_helpers'
                 / 'fixed_joint_mating'
-                / 'mate_lcs_creator_multi_update.svg'
+                / 'lcs_create'
+                / 'array'
+                / 'lcs_array_updater.svg'
             )
         }
 
@@ -116,10 +164,9 @@ class MatePointArrayUpdatorCommand:
         import FreeCAD as App
         import traceback
 
-
-        from fixed_joint_mating import mate_lcs_creator
+        from fixed_joint_mating.lcs_create.array import lcs_array_creator
         try:
-            mate_lcs_creator.run_update_array(App.ActiveDocument)
+            lcs_array_creator.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())
@@ -130,7 +177,8 @@ class MatePointArrayUpdatorCommand:
 
 
 COMMANDS = [
-    MatePointCreatorCommand,
+    MatePointVertexCreatorCommand,
+    MatePointPickingCreatorCommand,
     MatePointArrayCreatorCommand,
     MatePointArrayUpdatorCommand,
 ]

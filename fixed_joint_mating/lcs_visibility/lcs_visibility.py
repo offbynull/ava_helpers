@@ -2,7 +2,7 @@ import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtGui
 
-from fixed_joint_mating.mater_lcs import mater_lcs_visibility_changer
+from fixed_joint_mating.lcs_utils import lcs_visibility_changer
 from logger import warn
 
 
@@ -50,7 +50,7 @@ def run_change(doc: App.Document | None = None):
             label_regex = self.label_regex.text()
             name_regex = self.name_regex.text()
             visible = self.visible.isChecked()
-            mater_lcs_visibility_changer.change(doc, visible, self.label_parents_cache, self.name_parents_cache, label_regex, name_regex)
+            lcs_visibility_changer.change(doc, visible, self.label_parents_cache, self.name_parents_cache, label_regex, name_regex)
 
             self.doc.recompute()
 
@@ -74,7 +74,7 @@ def run_hide_all(doc: App.Document | None = None):
 
     doc.openTransaction('Change mater LCS visibility')
     try:
-        mater_lcs_visibility_changer.change(doc, False, {}, {}, '.*', '.*')
+        lcs_visibility_changer.change(doc, False, {}, {}, '.*', '.*')
         doc.commitTransaction()
     except Exception:
         doc.abortTransaction()
@@ -90,7 +90,7 @@ def run_show_all(doc: App.Document | None = None):
 
     doc.openTransaction('Change mater LCS visibility')
     try:
-        mater_lcs_visibility_changer.change(doc, True, {}, {}, '.*', '.*')
+        lcs_visibility_changer.change(doc, True, {}, {}, '.*', '.*')
         doc.commitTransaction()
     except Exception:
         doc.abortTransaction()

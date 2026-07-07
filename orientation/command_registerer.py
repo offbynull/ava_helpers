@@ -2,7 +2,7 @@ import FreeCAD as App
 import FreeCADGui
 
 
-def register(parent: FreeCADGui.Workbench):
+def register():
     from orientation.group_command_registerer import OrientationGroupCommand
     from orientation import group_command_registerer
 
@@ -12,6 +12,9 @@ def register(parent: FreeCADGui.Workbench):
         OrientationGroupCommand.__name__,
         OrientationGroupCommand(),
     )
+
+def append(parent: FreeCADGui.Workbench):
+    from orientation.group_command_registerer import OrientationGroupCommand
 
     parent.appendToolbar(
         'Ava Helpers',
