@@ -139,48 +139,10 @@ class MatePointArrayCreatorCommand:
         return True
 
 
-# WARNING: None of the imports outside are available, and __file__ isn't available either? That's why imports are
-#          loaded internally.
-class MatePointArrayUpdatorCommand:
-    def GetResources(self):
-        from pathlib import Path
-        return {
-            'MenuText': 'Update mate point array',
-            'ToolTip': 'Update selected mater LCS array based on values in its accompanying VarSet.',
-            'Accel': 'Shift+A, M, U',
-            'Pixmap': str(
-                Path(App.getUserAppDataDir())
-                / 'Mod'
-                / 'ava_helpers'
-                / 'fixed_joint_mating'
-                / 'lcs_create'
-                / 'array'
-                / 'lcs_array_updater.svg'
-            )
-        }
-
-    def Activated(self):
-        from logger import error
-        import FreeCAD as App
-        import traceback
-
-        from fixed_joint_mating.lcs_create.array import lcs_array_creator
-        try:
-            lcs_array_creator.run(App.ActiveDocument)
-        except Exception as exc:
-            error(f'Failed: {exc}')
-            error(traceback.format_exc())
-            raise
-
-    def IsActive(self):
-        return True
-
-
 COMMANDS = [
     MatePointVertexCreatorCommand,
     MatePointPickingCreatorCommand,
-    MatePointArrayCreatorCommand,
-    MatePointArrayUpdatorCommand,
+    MatePointArrayCreatorCommand
 ]
 
 def register():

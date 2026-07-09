@@ -8,35 +8,27 @@ import FreeCADGui as Gui
 from PySide import QtGui
 
 from fixed_joint_mating.lcs_utils import lcs_creator
-from fixed_joint_mating.lcs_create.array._array_parameter_storage import write_inputs_to_varset
 from fixed_joint_mating.lcs_create.array._utils import _attach_mater_and_orient, \
     _vector_pair_to_points_direction_length
 from fixed_joint_mating.lcs_utils.lcs_identifier import MATER_LCS_IDENTIFIER
-from fixed_joint_mating.lcs_create.array import mater_lcs_array_create_helpers
-from fixed_joint_mating.lcs_create.array import _selection
 from fixed_joint_mating.lcs_create.array._array_parameters import Offset
 from fixed_joint_mating.lcs_create.array._array_parameters import OffsetApplicationCoordinateSystem
 from logger import error, log, warn
+from utils.selection import extract_selection_inputs, SubelementType
 
 
 def _create(
         doc: App.Document,
-        selection: _selection.Selection,
+        src_obj: App.DocumentObject,
+        src_face_name: str,
+        src_vertex_obj: App.DocumentObject,
+        src_vertex_name: str,
+        src_edge_name: str | None,
+        dst_vertex_obj: App.DocumentObject,
         name_prefix: str,
         spacing: float,
-        offset: Offset,
-        store_varset: bool
+        offset: Offset
 ) -> None:
-    src = selection.source
-    src_vertex_obj, src_vertex_name = selection.source_vertex
-    _, src_face_name = selection.source_face
-    _, src_edge_name = selection.source_edge if selection.source_edge else (None, None)
-    dst = selection.destination
-    dst_vertex_obj, _ = selection.destination_vertex
-
-    if store_varset:
-        write_inputs_to_varset(doc, f'{name_prefix}_{src.Label}_{MATER_LCS_IDENTIFIER}', selection, spacing, offset)
-
     ret = _vector_pair_to_points_direction_length(src_vertex_obj, dst_vertex_obj)
     if ret is None:
         error('Unable to extract point and direction.')
@@ -65,7 +57,7 @@ def _create(
             mater_lcs_instance,
             offset,
             spacing,
-            src,
+            src_obj,
             src_edge_name,
             src_face_name,
             src_vertex_name
@@ -80,9 +72,31 @@ def run(doc: App.Document | None = None):
         warn('AvaHelpersWorkbench: no active document.')
         return
 
-    selection = _selection.extract_selection_inputs(doc)
-    if selection is None:
+    selection = extract_selection_inputs(doc)
+    faces = [p for p in selection if p.type == SubelementType.FACE]
+    verts = [p for p in selection if p.type == SubelementType.VERTEX]
+    edges = [p for p in selection if p.type == SubelementType.EDGE]
+    if len(faces) != 1 or len(verts) != 2 or len(edges) not in {0, 1}:
+        error('Select exactly one face and two vertices, and optionally one edge.')
         return
+    src_obj = faces[0].unresolved.parent_object
+    src_face_parent_obj = faces[0].unresolved.parent_object
+    src_face_name = faces[0].unresolved.subelement_name
+    src_vertex_parent_obj = verts[0].unresolved.parent_object
+    src_vertex_obj = verts[0].unresolved.subelement_object
+    src_vertex_name = verts[0].unresolved.subelement_name
+    src_edge_parent_obj = None if len(edges) == 0 else edges[0].unresolved.parent_object
+    src_edge_name = None if len(edges) == 0 else edges[0].unresolved.subelement_name
+    dst_obj = verts[1].unresolved.parent_object
+    dst_vertex_obj = verts[1].unresolved.subelement_object
+    dst_vertex_name = verts[1].unresolved.subelement_name
+    if src_obj != src_face_parent_obj \
+            or src_obj != src_vertex_parent_obj \
+            or (src_edge_parent_obj is not None and src_obj != src_edge_parent_obj):
+        error('Selected face, first vertex, and edge must be on the same object.')
+        return
+    log(f'Selected entities on object 1: {src_face_name=}, {src_vertex_name=} {src_edge_name=}')
+    log(f'Selected entities on object 2: {dst_vertex_name=}')
 
     class ArrayTaskPanel:
         def __init__(self):
@@ -123,12 +137,6 @@ def run(doc: App.Document | None = None):
             layout.addRow('Z offset:', self.z_offset)
             layout.addRow('Global:', self.global_space_offset)
 
-            layout.addRow(QtGui.QLabel(''))  # blank row as a spacer
-
-            self.store_varset = QtGui.QCheckBox('Store varset')
-            self.store_varset.setChecked(False)
-            self.store_varset.stateChanged.connect(self.preview)
-
             self.doc.openTransaction('Create mater LCS array')
             self.preview()  # Initial launch
 
@@ -144,8 +152,18 @@ def run(doc: App.Document | None = None):
                 z=self.z_offset.property('value').getValueAs('mm').Value,
                 coordinate_system_application=OffsetApplicationCoordinateSystem.GLOBAL if self.global_space_offset.isChecked() else OffsetApplicationCoordinateSystem.LCS,
             )
-            store_varset = self.store_varset.isChecked()
-            _create(doc, selection, name_prefix, length, offset, store_varset)
+            _create(
+                doc,
+                src_obj,
+                src_face_name,
+                src_vertex_obj,
+                src_vertex_name,
+                src_edge_name,
+                dst_vertex_obj,
+                name_prefix,
+                length,
+                offset
+            )
 
             self.doc.recompute()
 
