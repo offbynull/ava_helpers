@@ -4,6 +4,8 @@ import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtGui
 
+from logger import log
+
 
 class PickerTaskPanel:
     def __init__(
@@ -12,7 +14,8 @@ class PickerTaskPanel:
             confirm_callback: Callable,
             update_callback: Callable,
             default_name: str,
-            default_snap_xy: App.Units.Quantity
+            default_snap_xy: App.Units.Quantity,
+            edge_x_axis_length_mm: App.Units.Quantity
     ):
         self.doc = App.ActiveDocument
 
@@ -31,7 +34,7 @@ class PickerTaskPanel:
 
         self.snap_x = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
         self.snap_x.setProperty('value', default_snap_xy)
-        self.snap_x.editingFinished.connect(self.preview)
+        self.snap_x.editingFinished.connect(self.snap_x_update_preview)
         layout.addRow('Snap X:', self.snap_x)
 
         self.snap_y = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
@@ -39,7 +42,32 @@ class PickerTaskPanel:
         self.snap_y.editingFinished.connect(self.preview)
         layout.addRow('Snap Y:', self.snap_y)
 
+        layout.addRow("", QtGui.QWidget())
+
+        self.edge_x_axis_length_mm = edge_x_axis_length_mm
+        self.snap_x_subdivision = QtGui.QDoubleSpinBox()
+        self.snap_x_subdivision.setValue(0.0)
+        self.snap_x_subdivision.setMinimum(0.0)
+        self.snap_x_subdivision.editingFinished.connect(self.snap_x_subdiv_update_preview)
+        layout.addRow('Snap X Subdivision:', self.snap_x_subdivision)
+
         self.preview()  # Initial launch
+
+    def snap_x_update_preview(self, *args):
+        self.snap_x_subdivision.setValue(0.0)
+        self.preview()
+
+    def snap_x_subdiv_update_preview(self, *args):
+        if self.snap_x_subdivision.value() > 0:
+            log(f'{self.edge_x_axis_length_mm / self.snap_x_subdivision.value()=}')
+            self.snap_x.setProperty(
+                'value',
+                App.Units.Quantity(
+                    self.edge_x_axis_length_mm / self.snap_x_subdivision.value(),
+                    'mm'
+                )
+            )
+        self.preview()
 
     def preview(self, *args):
         name = self.name.text()

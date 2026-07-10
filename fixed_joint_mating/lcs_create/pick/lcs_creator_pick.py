@@ -70,7 +70,8 @@ def run(doc: App.Document | None = None):
             lcs_attachment_y_facing_edge_orienter.run(doc, lcs, obj, face.unresolved.subelement_name,
                                                       edge_y_direction.unresolved.subelement_name)
         else:
-            lcs_attachment_y_facing_positive_z_orienter.run(doc, lcs)
+            lcs_attachment_y_facing_edge_orienter.run(doc, lcs, obj, face.unresolved.subelement_name,
+                                                      edge_x_axis.unresolved.subelement_name)
         lcses.append(lcs)
         return lcs
 
@@ -87,12 +88,14 @@ def run(doc: App.Document | None = None):
         create_and_attach
     )
 
+    log(f'{edge_x_axis.unresolved.subelement_object.Length=}')
     panel = PickerTaskPanel(
         abort_callback,
         confirm_callback,
         update_callback,
         default_name,
-        default_snap_xy
+        default_snap_xy,
+        edge_x_axis.unresolved.subelement_object.Length
     )
 
     Gui.Control.showDialog(panel)

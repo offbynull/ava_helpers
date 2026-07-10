@@ -16,7 +16,7 @@ class MatePointVertexCreatorCommand:
                        'If an edge is also selected, the Y-axis of the LCS will point towards that edge. Otherwise, '
                        'the Y-axis will point as close as possible to the parent coordinate system\'s positive Z '
                        'direction.',
-            'Accel': 'Shift+A, M, S',
+            'Accel': 'Shift+A, M, V',
             'Pixmap': str(
                 Path(App.getUserAppDataDir())
                 / 'Mod'
@@ -51,16 +51,27 @@ class MatePointPickingCreatorCommand:
     def GetResources(self):
         from pathlib import Path
         return {
-            'MenuText': 'Create mate point on face (picking)',
-            'ToolTip': 'Create mater LCSes by clicking on a face, where the LCSes are created relative to a vertex on '
-                       'that face. Each LCS attaches to the selected face and vertex using "XY tangent to surface" '
-                       'attachment mode. The face and vertex must be on the same object. The resulting LCS will be '
-                       'oriented such that the Z-axis maps to the face\'s normal vector.\n'
+            'MenuText': 'Create mate point on face',
+            'ToolTip': 'Create mater LCSes by clicking on a face. Expected selections are ...\n'
                        '\n'
-                       'If an edge is also selected, the Y-axis of the LCS will point towards that edge. Otherwise, '
-                       'the Y-axis will point as close as possible to the parent coordinate system\'s positive Z '
-                       'direction.',
-            'Accel': 'Shift+A, M, M',
+                       '1. a face.\n'
+                       '2. a vertex attached to the face.\n'
+                       '3. an edge.\n'
+                       '4. an edge (optional).\n'
+                       '\n'
+                       'The face and the first vertex must be on the same object. Once active, moving the mouse over '
+                       'the face causes an LCS to follow the mouse, snapping to a grid. The grid\'s X-axis is parallel '
+                       'to the first selected edge / Y-axis is perpendicular to the first selected edge. Clicking the '
+                       'mouse button on the face drops the moving LCS at that point and creates a new moving LCS for a '
+                       'subsequent click/drop.\n'
+                       '\n'
+                       'Each LCS attaches to the selected face and vertex using "XY tangent to surface" attachment '
+                       'mode. The resulting LCSes will be oriented such that the Z-axis maps to the face\'s normal '
+                       'vector.\n'
+                       '\n'
+                       'If a 2nd edge is also selected, the Y-axis of the LCS will point towards that edge. Otherwise, '
+                       'the Y-axis will point to the 1st selected edge.',
+            'Accel': 'Shift+A, M, F',
             'Pixmap': str(
                 Path(App.getUserAppDataDir())
                 / 'Mod'
@@ -99,9 +110,9 @@ class MatePointArrayCreatorCommand:
             'ToolTip': 'Create an array of mater LCS and attach it them to the selected face and vertex using '
                        '"XY tangent to surface" attachment mode. Expected selections are ...\n'
                        '\n'
-                       '* a face.\n'
-                       '* two vertices.\n'
-                       '* an edge (optional).\n'
+                       '1. a face.\n'
+                       '2. two vertices.\n'
+                       '3. an edge (optional).\n'
                        '\n'
                        'The face and the first vertex must be on the same object. The resulting LCSes will be oriented '
                        'such that the Z-axis maps to the face\'s normal vector. If an edge is also selected, the '
