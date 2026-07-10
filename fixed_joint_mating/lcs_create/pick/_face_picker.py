@@ -14,6 +14,7 @@ class FaceXYPicker:
             doc: App.Document,
             obj_face: SelectedElement,
             obj_vertex: SelectedElement,
+            obj_edge: SelectedElement,
             snap_xy: App.Units.Quantity,
             abort_callback: Callable,
             confirm_callback: Callable,
@@ -25,6 +26,7 @@ class FaceXYPicker:
         assert obj_face.unresolved.parent_object == obj_vertex.unresolved.parent_object
         self.face = obj_face
         self.vertex = obj_vertex
+        self.edge = obj_edge
         if self.face.unresolved.subelement_object.distToShape(Part.Vertex(self.vertex.unresolved.subelement_object.Point))[0] > 1e-4:
             raise RuntimeError('Selected vertex is not on selected face.')
 
@@ -36,6 +38,7 @@ class FaceXYPicker:
 
         self.lcs_obj = self.new_object_creator_and_attachor()
         self.lcs_obj_base_pl = self._get_attachment_frame_placement(self.lcs_obj)
+        self.snap_pl = self._get_edge_snap_placement()
         self.last_xy = None
 
         self.cb_click = self.view.addEventCallback('SoMouseButtonEvent', self.on_click)
@@ -87,6 +90,61 @@ class FaceXYPicker:
                 return parent
         return obj
 
+    def _get_edge_snap_placement(self):
+        # The FreeCAD attachment frame is still the frame that receives the
+        # final AttachmentOffset.Base value.
+        #
+        # However, that frame's X/Y axes may be arbitrary from the user's
+        # perspective. For snapping, we build a separate frame whose origin is
+        # the selected vertex and whose X axis follows the selected edge.
+        #
+        # If the edge is not physically connected to the vertex, its position is
+        # ignored. Only its direction is used, as if the edge had been
+        # translated to pass through the vertex.
+        p_vertex = self.vertex.unresolved.parent_object.getGlobalPlacement().multVec(self.vertex.unresolved.subelement_object.Point)
+
+        edge_vertices = self.edge.unresolved.subelement_object.Vertexes
+        p1 = self.edge.unresolved.parent_object.getGlobalPlacement().multVec(edge_vertices[0].Point)
+        p2 = self.edge.unresolved.parent_object.getGlobalPlacement().multVec(edge_vertices[-1].Point)
+
+        x_axis = p2.sub(p1)
+        if x_axis.Length < 1e-7:
+            raise RuntimeError('Selected edge has zero length.')
+
+        # Use the attachment frame's Z axis as the snap frame's Z axis. This
+        # keeps the snap grid coplanar with the attachment frame while allowing
+        # the X/Y directions to be user-meaningful.
+        z_axis = self.lcs_obj_base_pl.Rotation.multVec(App.Vector(0, 0, 1))
+        z_axis.normalize()
+
+        if x_axis.Length < 1e-7:  # If face touches edge, this test is useless?
+            raise RuntimeError('Selected edge is perpendicular to selected face.')
+        x_axis.normalize()
+        y_axis = z_axis.cross(x_axis)
+        y_axis.normalize()
+
+        # Build a placement whose local X/Y axes define the snap grid. Points
+        # are converted into this frame for rounding, then converted back to
+        # world space before being projected onto the selected face.
+        m = App.Matrix()
+        m.A11 = x_axis.x
+        m.A21 = x_axis.y
+        m.A31 = x_axis.z
+
+        m.A12 = y_axis.x
+        m.A22 = y_axis.y
+        m.A32 = y_axis.z
+
+        m.A13 = z_axis.x
+        m.A23 = z_axis.y
+        m.A33 = z_axis.z
+
+        m.A14 = p_vertex.x
+        m.A24 = p_vertex.y
+        m.A34 = p_vertex.z
+
+        return App.Placement(m)
+
     def get_snap_from_event(self, info):
         hit = self.view.getObjectInfo(info['Position'])
         if hit is None \
@@ -100,10 +158,13 @@ class FaceXYPicker:
             float(hit['y']),
             float(hit['z'])
         )
-        p_lcs = self.lcs_obj_base_pl.inverse().multVec(p_hit)
+        # Snap in the edge-derived frame, not the attachment frame. The snapped
+        # point is still converted back to world space and projected to the
+        # selected face before producing the final attachment-frame offset.
+        p_lcs = self.snap_pl.inverse().multVec(p_hit)
         x = round(p_lcs.x / self.snap_xy.Value) * self.snap_xy.Value
         y = round(p_lcs.y / self.snap_xy.Value) * self.snap_xy.Value
-        p_plane = self.lcs_obj_base_pl.multVec(App.Vector(x, y, 0))
+        p_plane = self.snap_pl.multVec(App.Vector(x, y, 0))
         p_face = self.project_to_face(p_plane)
         if p_face is None:
             return None

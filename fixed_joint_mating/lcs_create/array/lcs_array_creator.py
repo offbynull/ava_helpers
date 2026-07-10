@@ -105,8 +105,12 @@ def run(doc: App.Document | None = None):
             self.form = QtGui.QWidget()
             layout = QtGui.QFormLayout(self.form)
 
+            if src_obj == dst_obj:
+                name_prefix = f'{src_obj.Label} - {MATER_LCS_IDENTIFIER}'
+            else:
+                name_prefix = f'{src_obj.Label} to {dst_obj.Label} - {MATER_LCS_IDENTIFIER}'
             self.name_prefix = QtGui.QLineEdit()
-            self.name_prefix.setText(''.join(random.choices(string.ascii_letters + string.digits, k=6)))
+            self.name_prefix.setText(name_prefix)
             self.name_prefix.setPlaceholderText('Enter name prefix')
             # self.name_prefix.textChanged.connect(self.preview)
             self.name_prefix.editingFinished.connect(self.preview)

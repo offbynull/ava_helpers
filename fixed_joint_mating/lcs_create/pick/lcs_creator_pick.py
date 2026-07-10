@@ -20,17 +20,20 @@ def run(doc: App.Document | None = None):
     faces = [p for p in selection if p.type == SubelementType.FACE]
     verts = [p for p in selection if p.type == SubelementType.VERTEX]
     edges = [p for p in selection if p.type == SubelementType.EDGE]
-    if len(faces) != 1 or len(verts) != 1 or len(edges) not in {0, 1}:
+    if len(faces) != 1 or len(verts) != 1 or len(edges) not in {1, 2}:
         error('Select exactly one face and one vertex, and optionally one edge.')
         return
     face, = faces
     vertex, = verts
-    edge = edges[0] if edges else None
+    edge_x_axis = edges[0]
+    edge_y_direction = edges[1] if len(edges) > 1 else None
     obj = face.unresolved.parent_object
-    if obj != vertex.unresolved.parent_object or (edge is not None and obj != edge.unresolved.parent_object):
+    if obj != vertex.unresolved.parent_object \
+            or obj != edge_x_axis.unresolved.parent_object \
+            or (edge_y_direction is not None and obj != edge_y_direction.unresolved.parent_object):
         error('Selected face, vertex, and edge must be on the same object.')
         return
-    log(f'Selected entities: {face=}, {vertex=}, {edge=}')
+    log(f'Selected entities: {face=}, {vertex=}, {edge_x_axis=} {edge_y_direction}')
 
     doc.openTransaction('Create mater LCS multi')
 
@@ -63,8 +66,9 @@ def run(doc: App.Document | None = None):
     def create_and_attach():
         lcs = lcs_creator.run(doc, default_name)
         lcs_attacher.run(doc, lcs, obj, face.unresolved.subelement_name, vertex.unresolved.subelement_name)
-        if edge is not None:
-            lcs_attachment_y_facing_edge_orienter.run(doc, lcs, obj, face.unresolved.subelement_name, edge.unresolved.subelement_name)
+        if edge_y_direction is not None:
+            lcs_attachment_y_facing_edge_orienter.run(doc, lcs, obj, face.unresolved.subelement_name,
+                                                      edge_y_direction.unresolved.subelement_name)
         else:
             lcs_attachment_y_facing_positive_z_orienter.run(doc, lcs)
         lcses.append(lcs)
@@ -75,6 +79,7 @@ def run(doc: App.Document | None = None):
         doc,
         face,
         vertex,
+        edge_x_axis,
         default_snap_xy,
         abort_callback,
         confirm_callback,
