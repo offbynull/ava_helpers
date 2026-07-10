@@ -15,7 +15,8 @@ class FaceXYPicker:
             obj_face: SelectedElement,
             obj_vertex: SelectedElement,
             obj_edge: SelectedElement,
-            snap_xy: App.Units.Quantity,
+            snap_x: App.Units.Quantity,
+            snap_y: App.Units.Quantity,
             abort_callback: Callable,
             confirm_callback: Callable,
             new_object_creator: Callable
@@ -30,7 +31,8 @@ class FaceXYPicker:
         if self.face.unresolved.subelement_object.distToShape(Part.Vertex(self.vertex.unresolved.subelement_object.Point))[0] > 1e-4:
             raise RuntimeError('Selected vertex is not on selected face.')
 
-        self.snap_xy = snap_xy
+        self.snap_x = snap_x
+        self.snap_y = snap_y
 
         self.abort_callback = abort_callback
         self.confirm_callback = confirm_callback
@@ -45,8 +47,9 @@ class FaceXYPicker:
         self.cb_key = self.view.addEventCallback('SoKeyboardEvent', self.on_key)
         self.cb_move = self.view.addEventCallback('SoLocation2Event', self.on_move)
 
-    def set_snap(self, snap_xy: App.Units.Quantity):
-        self.snap_xy = snap_xy
+    def set_snap(self, snap_x: App.Units.Quantity, snap_y: App.Units.Quantity):
+        self.snap_x = snap_x
+        self.snap_y = snap_y
 
     @staticmethod
     def _get_attachment_frame_placement(lcs_obj):
@@ -162,8 +165,8 @@ class FaceXYPicker:
         # point is still converted back to world space and projected to the
         # selected face before producing the final attachment-frame offset.
         p_lcs = self.snap_pl.inverse().multVec(p_hit)
-        x = round(p_lcs.x / self.snap_xy.Value) * self.snap_xy.Value
-        y = round(p_lcs.y / self.snap_xy.Value) * self.snap_xy.Value
+        x = round(p_lcs.x / self.snap_x.Value) * self.snap_x.Value
+        y = round(p_lcs.y / self.snap_y.Value) * self.snap_y.Value
         p_plane = self.snap_pl.multVec(App.Vector(x, y, 0))
         p_face = self.project_to_face(p_plane)
         if p_face is None:

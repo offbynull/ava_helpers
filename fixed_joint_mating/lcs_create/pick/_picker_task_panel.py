@@ -29,17 +29,23 @@ class PickerTaskPanel:
         self.name.editingFinished.connect(self.preview)
         layout.addRow('Name prefix:', self.name)
 
-        self.snap_xy = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-        self.snap_xy.setProperty('value', default_snap_xy)
-        self.snap_xy.editingFinished.connect(self.preview)
-        layout.addRow('Snap XY:', self.snap_xy)
+        self.snap_x = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self.snap_x.setProperty('value', default_snap_xy)
+        self.snap_x.editingFinished.connect(self.preview)
+        layout.addRow('Snap X:', self.snap_x)
+
+        self.snap_y = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self.snap_y.setProperty('value', default_snap_xy)
+        self.snap_y.editingFinished.connect(self.preview)
+        layout.addRow('Snap Y:', self.snap_y)
 
         self.preview()  # Initial launch
 
     def preview(self, *args):
         name = self.name.text()
-        snap_xy = self.snap_xy.property('value')
-        self.update_callback(name, snap_xy)
+        snap_x = self.snap_x.property('value')
+        snap_y = self.snap_y.property('value')
+        self.update_callback(name, snap_x, snap_y)
 
     def accept(self):
         self.confirm_callback()

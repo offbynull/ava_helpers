@@ -58,9 +58,9 @@ def run(doc: App.Document | None = None):
         Gui.Control.closeDialog()
 
     default_name = obj.Label + ' - ' + MATER_LCS_IDENTIFIER
-    def update_callback(name_: str, snap_xy: App.Units.Quantity):
+    def update_callback(name_: str, snap_x: App.Units.Quantity, snap_y: App.Units.Quantity):
         nonlocal default_name
-        face_picker.set_snap(snap_xy)
+        face_picker.set_snap(snap_x, snap_y)
         default_name = name_
 
     def create_and_attach():
@@ -80,6 +80,7 @@ def run(doc: App.Document | None = None):
         face,
         vertex,
         edge_x_axis,
+        default_snap_xy,
         default_snap_xy,
         abort_callback,
         confirm_callback,
