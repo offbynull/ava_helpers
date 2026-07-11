@@ -16,7 +16,7 @@ class MaterLCSSelection:
 def _obj_desc(o):
     if not o:
         return '<None>'
-    return f'<{getattr(o,'TypeId','?')} Name={getattr(o,'Name','?')} Label={getattr(o,'Label','?')}>'
+    return f'<{getattr(o,"TypeId","?")} Name={getattr(o,"Name","?")} Label={getattr(o,"Label","?")}>'
 
 
 def _find_mater_lcs_in_subname(doc, subname):
@@ -57,8 +57,8 @@ def pull_selected_objects_that_lead_to_mater_lcs() -> list[MaterLCSSelection]:
     for sel in Gui.Selection.getSelectionEx('', 0):
         log('---- SelectionEx ----')
         log(f'sel.Object={_obj_desc(sel.Object)}')
-        log(f'sel.SubElementNames={getattr(sel, 'SubElementNames', None)}')
-        log(f'sel.SubObjects={getattr(sel, 'SubObjects', None)}')
+        log(f'sel.SubElementNames={getattr(sel, "SubElementNames", None)}')
+        log(f'sel.SubObjects={getattr(sel, "SubObjects", None)}')
 
         doc = sel.Object.Document
 

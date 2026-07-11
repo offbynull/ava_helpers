@@ -6,7 +6,8 @@ from PySide import QtGui
 
 from construction.lumber_builders import lumber_2in_x_4in_x_8ft__2_Premium_Grade_KD_HT_Stud_Model__058449, \
     lumber_2in_x_4in_x_10ft__2_Premium_Grade_SPF_Dimensional_Lumber_Model__6091, \
-    lumber_6in_x_6in_8ft__2_Pressure_Ground_Contact_Southern_Pine_Timber_Model__260691
+    lumber_6in_x_6in_8ft__2_Pressure_Ground_Contact_Southern_Pine_Timber_Model__260691, \
+    lumber_2in_x_4in_x_8ft__2_Ground_Contact_Pressure_Treated_Southern_Yellow_Pine_Lumber_Model__106147
 from logger import warn
 
 CUT_GROUP_NAME = 'Construction_materials'
@@ -16,6 +17,7 @@ CUT_GROUP_LABEL = 'Construction materials'
 PARTS = [
     lumber_2in_x_4in_x_8ft__2_Premium_Grade_KD_HT_Stud_Model__058449,
     lumber_2in_x_4in_x_10ft__2_Premium_Grade_SPF_Dimensional_Lumber_Model__6091,
+    lumber_2in_x_4in_x_8ft__2_Ground_Contact_Pressure_Treated_Southern_Yellow_Pine_Lumber_Model__106147,
     lumber_6in_x_6in_8ft__2_Pressure_Ground_Contact_Southern_Pine_Timber_Model__260691,
 ]
 
