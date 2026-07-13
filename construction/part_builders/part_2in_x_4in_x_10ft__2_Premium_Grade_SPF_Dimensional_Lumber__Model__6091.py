@@ -2,12 +2,14 @@ import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtGui as QtWidgets
 
-from construction.lumber_builders._utils import inches_to_feet_inches_str, safe_name
+from construction.part_builders._utils import inches_to_feet_inches_str, safe_name
+from construction.part_builders._lumber_cut_creator import create_uneased_slab
 
 _T_MAX = 1.5
 _W_MAX = 3.5
 _L_MAX = 120
-LABEL = '2 in. x 4 in. x 10 ft. #2 Premium Grade SPF Dimensional Lumber (Model # 6091)'
+_R_TYPICAL = 1/8
+PART = '2 in. x 4 in. x 10 ft. #2 Premium Grade SPF Dimensional Lumber (Model # 6091)'
 
 
 class Card:
@@ -30,6 +32,11 @@ class Card:
         self.length.setProperty('value', App.Units.Quantity(_L_MAX, 'in'))
         self.length.editingFinished.connect(preview)
 
+        self.easing_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self.easing_radius.setProperty('unit', 'in')
+        self.easing_radius.setProperty('value', App.Units.Quantity(_R_TYPICAL, 'in'))
+        self.easing_radius.editingFinished.connect(preview)
+
         layout.addRow('Actual thickness:', self.thickness)
         layout.addRow('Actual width:', self.width)
         layout.addRow('Actual length:', self.length)
@@ -44,49 +51,29 @@ class Card:
         l = self.length.property('value').getValueAs('in').Value
         if l < 0:
             l = _L_MAX + l
+        r = self.easing_radius.property('value').getValueAs('in').Value
 
-        if t <= 0 or w <= 0 or l <= 0:
+        if t <= 0 or w <= 0 or l <= 0 or r <= 0:
             raise ValueError('All dimensions must be greater than zero')
 
-        return t, w, l
+        return t, w, l, r
 
-    def label_and_name(self, prefix: str):
-        t, w, l = self._dimensions()
+    def label(self, prefix: str):
+        t, w, l, r = self._dimensions()
         label = ''
         if abs(t - _T_MAX) > 10e-4 or abs(w - _W_MAX) > 10e-4 or abs(l - _L_MAX) > 10e-4:
             label = f'{inches_to_feet_inches_str(t)} x ' \
                     + f'{inches_to_feet_inches_str(w)} x ' \
                     + f'{inches_to_feet_inches_str(l)} ----- '
-        label = f'{label}{LABEL}'
-        return prefix + ' ' + label, safe_name(prefix + ' ' +label)
+        label = f'{label}{PART}'
+        return prefix + ' ' + label
+
+    def name(self, prefix: str):
+        return safe_name(f'{prefix} {self.label(prefix)}')
 
     def build(self, doc: App.Document, prefix: str):
-        t, w, l = self._dimensions()
-        label, name = self.label_and_name(prefix)
-
-        body = doc.addObject('PartDesign::Body', name)
-        body.Label = label
-        body.addProperty('App::PropertyString', 'Retailer', 'Retail', 'Retailer')
-        body.setEditorMode('Retailer', 1)
-        body.Retailer = 'Home Depot'
-        body.addProperty('App::PropertyString', 'RetailerPart', 'Retail', 'Retailer Part')
-        body.setEditorMode('RetailerPart', 1)
-        body.RetailerPart = LABEL
-        body.addProperty('App::PropertyLength', 'Length', 'Dimensions', 'Length')
-        body.setEditorMode('Length', 1)
-        body.addProperty('App::PropertyLength', 'Width', 'Dimensions', 'Width')
-        body.setEditorMode('Width', 1)
-        body.addProperty('App::PropertyLength', 'Thickness', 'Dimensions', 'Thickness')
-        body.setEditorMode('Thickness', 1)
-
-        box = body.newObject('PartDesign::AdditiveBox', 'AdditiveBox')
-        box.Length = App.Units.Quantity(l, 'in')
-        box.Width = App.Units.Quantity(w, 'in')
-        box.Height = App.Units.Quantity(t, 'in')
-        body.Tip = box
-
-        body.setExpression('Length', f'{box.Name}.Length')
-        body.setExpression('Width', f'{box.Name}.Width')
-        body.setExpression('Thickness', f'{box.Name}.Height')
-
-        return body
+        t, w, l, r = self._dimensions()
+        name = self.name(prefix)
+        label = self.label(prefix)
+        return create_uneased_slab(doc, name, label, 'Home Depot', PART, t, w, l)
+        # return create_eased_slab(doc, name, label, 'Home Depot', PART, t, w, l, r)

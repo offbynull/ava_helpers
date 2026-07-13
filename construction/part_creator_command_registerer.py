@@ -8,15 +8,15 @@ class LumberCreatorCommand:
     def GetResources(self):
         from pathlib import Path
         return {
-            'MenuText': 'Create lumber',
-            'ToolTip': 'Create a piece of lumber from a predefined list.',
-            'Accel': 'Shift+A,C,L',
+            'MenuText': 'Create part',
+            'ToolTip': 'Create a construction part (e.g., piece of lumber) from a predefined list.',
+            'Accel': 'Shift+A,C,P',
             'Pixmap': str(
                 Path(App.getUserAppDataDir())
                 / 'Mod'
                 / 'ava_helpers'
                 / 'construction'
-                / 'lumber_creator.svg'
+                / 'part_creator.svg'
             )
         }
 
@@ -25,9 +25,9 @@ class LumberCreatorCommand:
         import traceback
         from logger import error
 
-        from construction import lumber_creator
+        from construction import part_creator
         try:
-            lumber_creator.run(App.ActiveDocument)
+            part_creator.run(App.ActiveDocument)
         except Exception as exc:
             error(f'Failed: {exc}')
             error(traceback.format_exc())

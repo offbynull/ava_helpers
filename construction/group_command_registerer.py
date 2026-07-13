@@ -6,10 +6,10 @@ import FreeCADGui
 #          loaded internally.
 class ConstructionGroupCommand:
     def GetCommands(self):
-        from construction import lumber_creator_command_registerer
+        from construction import part_creator_command_registerer
 
         return \
-            tuple(lumber_creator_command_registerer.get_names())
+            tuple(part_creator_command_registerer.get_names())
 
     def GetResources(self):
         from pathlib import Path
@@ -28,9 +28,9 @@ class ConstructionGroupCommand:
 
 
 def register():
-    from construction import lumber_creator_command_registerer
+    from construction import part_creator_command_registerer
 
-    lumber_creator_command_registerer.register()
+    part_creator_command_registerer.register()
 
     FreeCADGui.addCommand(
         ConstructionGroupCommand.__name__,
