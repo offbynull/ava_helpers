@@ -1,9 +1,11 @@
-import math
+from dataclasses import dataclass
+from functools import cached_property
 
 import FreeCAD as App
+import math
 
 
-def cone_frustum_to_angle(radius1: App.Units.Quantity, radius2: App.Units.Quantity, radius_distance: App.Units.Quantity):
+def _cone_frustum_to_angle(radius1: App.Units.Quantity, radius2: App.Units.Quantity, radius_distance: App.Units.Quantity):
     # This is a cone frustrum: There's a height and two radiuses. Those heights and two radiuses form a trangle - use it
     # to get the angle of the cone, from the axis.
     if radius1 == radius2:
@@ -19,7 +21,7 @@ def cone_frustum_to_angle(radius1: App.Units.Quantity, radius2: App.Units.Quanti
     return angle
 
 
-def cone_height_at_radius(angle: App.Units.Quantity, target_radius: App.Units.Quantity):
+def _cone_height_at_radius(angle: App.Units.Quantity, target_radius: App.Units.Quantity):
     raw_angle = angle.Value
     flipped = False
     if raw_angle < 0:
@@ -33,7 +35,7 @@ def cone_height_at_radius(angle: App.Units.Quantity, target_radius: App.Units.Qu
     return adjacent
 
 
-def cone_radius_at_height(angle: App.Units.Quantity, target_height: App.Units.Quantity):
+def _cone_radius_at_height(angle: App.Units.Quantity, target_height: App.Units.Quantity):
     raw_angle = angle.Value
     flipped = False
     if raw_angle < 0:
@@ -45,3 +47,44 @@ def cone_radius_at_height(angle: App.Units.Quantity, target_height: App.Units.Qu
         raw_opposite = -raw_opposite
     opposite = raw_opposite * App.Units.MilliMetre
     return opposite
+
+
+
+@dataclass(frozen=True)
+class ConeFrustumParameters:
+    bottom_radius: App.Units.Quantity
+    top_radius: App.Units.Quantity
+    distance_between_radiuses: App.Units.Quantity
+
+    @cached_property
+    def angle(self):
+        return _cone_frustum_to_angle(
+            self.bottom_radius,
+            self.top_radius,
+            self.distance_between_radiuses
+        )
+
+    @cached_property
+    def bottom_height(self):
+        return self.height_at_radius(self.bottom_radius)
+
+    @cached_property
+    def top_height(self):
+        return self.height_at_radius(self.top_radius)
+
+    def height_at_radius(self, radius: App.Units.Quantity):
+        return _cone_height_at_radius(
+            self.angle,
+            radius
+        )
+
+    def radius_at_height(self, height: App.Units.Quantity):
+        return _cone_radius_at_height(
+            self.angle,
+            height
+        )
+
+
+
+
+

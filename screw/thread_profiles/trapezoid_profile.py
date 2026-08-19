@@ -6,6 +6,8 @@ import Part
 import Sketcher
 from PySide import QtGui as QtWidgets
 
+from screw.cone_frustum_parameters import ConeFrustumParameters
+from screw.thread_profile_extents import ThreadProfileExtents
 
 NAME = 'Trapezoid'
 
@@ -56,7 +58,7 @@ class Card:
         self.blunt_head_angle.editingFinished.connect(preview)
         round_tip_layout.addRow('Blunt head angle:', self.blunt_head_angle)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, radius: App.Units.Quantity, cone_angle: App.Units.Quantity):
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustumParameters):
         raw_trapezoid_base = self.base.property('value').Value
         raw_trapezoid_height = self.height.property('value').Value
         top_left = [0, 0, 0]
@@ -65,7 +67,7 @@ class Card:
         bottom_right = [-raw_trapezoid_base, raw_trapezoid_height, 0]
         points = [top_left, top_right, bottom_left, bottom_right]
         for p in points:
-            p[0] += radius.Value
+            p[0] += minor_cone.bottom_radius.Value
         lines = [
             Part.LineSegment(App.Vector(*top_left), App.Vector(*top_right)),
             Part.LineSegment(App.Vector(*top_right), App.Vector(*bottom_right)),
@@ -74,7 +76,7 @@ class Card:
             Part.LineSegment(App.Vector(*top_left), App.Vector(*bottom_right)),
             Part.LineSegment(App.Vector(*top_right), App.Vector(*bottom_left)),
         ]
-        slope = (90 * App.Units.Degree) - cone_angle
+        slope = minor_cone.angle
         sketch.addGeometry(lines, False)
         head_taper_angle = (90 * App.Units.Degree) + self.head_facing_angle.property('value')
         lead_taper_angle = (90 * App.Units.Degree) + self.lead_facing_angle.property('value')
@@ -88,7 +90,7 @@ class Card:
         sketch.addConstraint(Sketcher.Constraint('PointOnObject', 4, 1, -1))
         sketch.addConstraint(Sketcher.Constraint('Vertical', 4))
         sketch.addConstraint(Sketcher.Constraint('DistanceY', 4, 2, -raw_trapezoid_base))
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', 4, 1, radius.Value))
+        sketch.addConstraint(Sketcher.Constraint('DistanceX', 4, 1, minor_cone.bottom_radius.Value))
         sketch.toggleConstruction(4)
         sketch.delConstraint(2)
         sketch.addConstraint(Sketcher.Constraint('Coincident', 3, 1, 4, 2))
@@ -147,11 +149,5 @@ class Card:
             sketch.addConstraint(Sketcher.Constraint('Angle', 0, 2, 8, 2, blunt_head_angle))
             sketch.addConstraint(Sketcher.Constraint('Distance', 8, blunt_head_distance))
 
-        doc.recompute([sketch])  # Need to recompute sketch to apply constraints and stuff - required for pulling width
-        width = radius
-        height = self.height.property('value')
-        for g in sketch.Geometry:
-            width = max([width, (g.StartPoint.x * App.Units.MilliMetre) - radius])
-            width = max([width, (g.EndPoint.x * App.Units.MilliMetre) - radius])
-
-        return width, height
+        doc.recompute([sketch])
+        return ThreadProfileExtents(sketch.Shape.BoundBox, minor_cone.bottom_radius)

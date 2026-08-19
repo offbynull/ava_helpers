@@ -4,6 +4,8 @@ import Part
 import Sketcher
 from PySide import QtGui as QtWidgets
 
+from screw.cone_frustum_parameters import ConeFrustumParameters
+from screw.thread_profile_extents import ThreadProfileExtents
 
 NAME = 'Square'
 
@@ -18,7 +20,7 @@ class Card:
 
         layout.addRow('Length:', self.length)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, radius: App.Units.Quantity, cone_angle: App.Units.Quantity):
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustumParameters):
         s = self.length.property('value') / 2
         top_left = [-s, -s, 0]
         top_right = [s, -s, 0]
@@ -26,7 +28,7 @@ class Card:
         bottom_right = [s, s, 0]
         points = [top_left, top_right, bottom_left, bottom_right]
         for p in points:
-            p[0] += radius + s
+            p[0] += minor_cone.bottom_radius + s
             p[1] -= s
         lines = [
             Part.LineSegment(App.Vector(*top_left), App.Vector(*top_right)),
@@ -34,7 +36,7 @@ class Card:
             Part.LineSegment(App.Vector(*bottom_right), App.Vector(*bottom_left)),
             Part.LineSegment(App.Vector(*bottom_left), App.Vector(*top_left)),
         ]
-        slope = (90 * App.Units.Degree) + cone_angle
+        slope = (90 * App.Units.Degree) + minor_cone.angle
         sketch.addGeometry(lines, False)
         sketch.addConstraint(Sketcher.Constraint('Horizontal', 0))
         sketch.addConstraint(Sketcher.Constraint('Horizontal', 2))
@@ -46,6 +48,7 @@ class Card:
         sketch.addConstraint(Sketcher.Constraint('Coincident', 3, 2, 0, 1))
         sketch.addConstraint(Sketcher.Constraint('DistanceX', 2, 2, 1, 2, s * 2 - (0.001  * App.Units.MilliMetre)))  # shrink slightly to avoid problems with helix fusing on pitch that makes the helix touch (e.g., thread profile with 2mm rise and a 2mm pitch)
         sketch.addConstraint(Sketcher.Constraint('DistanceY', 3, 2, 3, 1, s * 2 - (0.001 * App.Units.MilliMetre)))  # shrink slightly to avoid problems with helix fusing on pitch that makes the helix touch (e.g., thread profile with 2mm rise and a 2mm pitch)
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', 2, 2, radius))
+        sketch.addConstraint(Sketcher.Constraint('DistanceX', 2, 2, minor_cone.bottom_radius))
         sketch.addConstraint(Sketcher.Constraint('DistanceY', 2, 2, 0))
-        return self.length.property('value'), self.length.property('value')
+        doc.recompute([sketch])
+        return ThreadProfileExtents(sketch.Shape.BoundBox, minor_cone.bottom_radius)

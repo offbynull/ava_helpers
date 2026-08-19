@@ -3,42 +3,18 @@ import FreeCADGui as Gui
 from PySide import QtGui
 
 from logger import warn
-from screw._lead_in import head_lead_in_cutter, end_lead_in_cutter
-from screw._trigonometry import cone_frustum_to_angle
+from screw._lead_in_cutter import cut_lead_in_upper, cut_lead_in_lower
+from screw._thread_excess_cutter import cut_excess_thread_lower, cut_excess_thread_upper
+from screw.cone_frustum_parameters import ConeFrustumParameters
+from screw.thread_profile_extents_set import ThreadProfileExtentsSet
 from screw.thread_profiles import square_profile, triangle_profile, trapezoid_profile
+from screw.ui_components.tight_stacked_widgets import TightStackedWidget
 
 THREAD_PROFILES = [
     triangle_profile,
     square_profile,
     trapezoid_profile
 ]
-
-
-def _excess_thread_trimmer(
-        doc: App.Document,
-        body: App.DocumentObject,
-        name: str,
-        radius: App.Units.Quantity,
-        thread_profile_height: App.Units.Quantity,
-        thread_profile_width: App.Units.Quantity,
-        z_offset: App.Units.Quantity
-):
-    cut_body = doc.addObject('PartDesign::Body', f'{name} Body')
-    cut_cylinder = cut_body.newObject('PartDesign::AdditiveCylinder', f'{name} Cylinder')
-    cut_cylinder.Radius = radius + thread_profile_width
-    cut_cylinder.Height = thread_profile_height
-    cut_cylinder.Angle = 360 * App.Units.Degree
-    cut_cylinder.FirstAngle = 0 * App.Units.Degree
-    cut_cylinder.SecondAngle = 0 * App.Units.Degree
-    boolean_cut = body.newObject('PartDesign::Boolean', f'{name} Thread Excess Cut')
-    boolean_cut.addObjects([cut_body, ])
-    boolean_cut.setObjects([cut_body, ])
-    boolean_cut.Type = 1
-    cut_body.Placement = App.Placement(
-        App.Vector(0, 0, z_offset),
-        App.Rotation(App.Vector(0, 0, 1), 0)
-    )
-    return boolean_cut
 
 
 def run(doc: App.Document) -> None:
@@ -66,20 +42,20 @@ def run(doc: App.Document) -> None:
             surface_shape_layout = QtGui.QFormLayout(self.surface_shape_group)
             layout.addRow(self.surface_shape_group)
 
-            self.cone_height = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.cone_height.setProperty('value', 50 * App.Units.MilliMetre)
-            self.cone_height.editingFinished.connect(self.preview)
-            surface_shape_layout.addRow('Height:', self.cone_height)
+            self.cone_distance_between_radiuses = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.cone_distance_between_radiuses.setProperty('value', 50 * App.Units.MilliMetre)
+            self.cone_distance_between_radiuses.editingFinished.connect(self.preview)
+            surface_shape_layout.addRow('Distance:', self.cone_distance_between_radiuses)
 
-            self.cone_point_end_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.cone_point_end_radius.setProperty('value', 10 * App.Units.MilliMetre)
-            self.cone_point_end_radius.editingFinished.connect(self.preview)
-            surface_shape_layout.addRow('Point end radius:', self.cone_point_end_radius)
+            self.cone_top_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.cone_top_radius.setProperty('value', 50 * App.Units.MilliMetre)
+            self.cone_top_radius.editingFinished.connect(self.preview)
+            surface_shape_layout.addRow('Top radius:', self.cone_top_radius)
 
-            self.cone_point_head_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.cone_point_head_radius.setProperty('value', 50 * App.Units.MilliMetre)
-            self.cone_point_head_radius.editingFinished.connect(self.preview)
-            surface_shape_layout.addRow('Point head radius:', self.cone_point_head_radius)
+            self.cone_bottom_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.cone_bottom_radius.setProperty('value', 10 * App.Units.MilliMetre)
+            self.cone_bottom_radius.editingFinished.connect(self.preview)
+            surface_shape_layout.addRow('Bottom radius:', self.cone_bottom_radius)
 
             # Thread
             # -------
@@ -91,7 +67,7 @@ def run(doc: App.Document) -> None:
             layout.addRow(self.thread_group)
             
             self.thread_profile_combo = QtGui.QComboBox()
-            self.thread_profile_stack = QtGui.QStackedWidget()
+            self.thread_profile_stack = TightStackedWidget()
             self.thread_profile_cards = []
             for thread_profile in THREAD_PROFILES:
                 self.thread_profile_combo.addItem(thread_profile.NAME)
@@ -99,6 +75,7 @@ def run(doc: App.Document) -> None:
                 self.thread_profile_cards.append(card)
                 self.thread_profile_stack.addWidget(card.form)
             self.thread_profile_combo.currentIndexChanged.connect(self.thread_profile_stack.setCurrentIndex)
+            self.thread_profile_combo.currentIndexChanged.connect(lambda _: self.thread_profile_stack.updateGeometry())
             self.thread_profile_combo.currentIndexChanged.connect(self.preview)
             thread_layout.addRow('Profile:', self.thread_profile_combo)
             thread_layout.addRow(self.thread_profile_stack)
@@ -119,43 +96,43 @@ def run(doc: App.Document) -> None:
             self.thread_left_handed.toggled.connect(self.preview)
             thread_layout.addRow('Left-handed:', self.thread_left_handed)
 
-            # Lead-in
-            # -------
-            self.end_lead_in_group = QtGui.QGroupBox('End lead-in')
-            self.end_lead_in_group.setCheckable(True)
-            self.end_lead_in_group.setChecked(False)
-            self.end_lead_in_group.toggled.connect(self.preview)
-            end_lead_in_layout = QtGui.QFormLayout(self.end_lead_in_group)
-            layout.addRow(self.end_lead_in_group)
+            # Top lead-in
+            # -----------
+            self.top_lead_in_group = QtGui.QGroupBox('Top lead-in')
+            self.top_lead_in_group.setCheckable(True)
+            self.top_lead_in_group.setChecked(False)
+            self.top_lead_in_group.toggled.connect(self.preview)
+            top_lead_in_layout = QtGui.QFormLayout(self.top_lead_in_group)
+            layout.addRow(self.top_lead_in_group)
 
-            self.end_lead_in_height = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.end_lead_in_height.setProperty('value', 3 * App.Units.MilliMetre)
-            self.end_lead_in_height.editingFinished.connect(self.preview)
-            end_lead_in_layout.addRow('Height:', self.end_lead_in_height)
+            self.top_lead_in_height = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.top_lead_in_height.setProperty('value', 3 * App.Units.MilliMetre)
+            self.top_lead_in_height.editingFinished.connect(self.preview)
+            top_lead_in_layout.addRow('Height:', self.top_lead_in_height)
 
-            self.end_lead_in_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.end_lead_in_radius.setProperty('value', 9 * App.Units.MilliMetre)
-            self.end_lead_in_radius.editingFinished.connect(self.preview)
-            end_lead_in_layout.addRow('Radius:', self.end_lead_in_radius)
+            self.top_lead_in_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.top_lead_in_radius.setProperty('value', 9 * App.Units.MilliMetre)
+            self.top_lead_in_radius.editingFinished.connect(self.preview)
+            top_lead_in_layout.addRow('Radius:', self.top_lead_in_radius)
+            
+            # Bottom lead-in
+            # --------------
+            self.bottom_lead_in_group = QtGui.QGroupBox('Bottom lead-in')
+            self.bottom_lead_in_group.setCheckable(True)
+            self.bottom_lead_in_group.setChecked(False)
+            self.bottom_lead_in_group.toggled.connect(self.preview)
+            bottom_lead_in_layout = QtGui.QFormLayout(self.bottom_lead_in_group)
+            layout.addRow(self.bottom_lead_in_group)
 
-            # Runout
-            # ------
-            self.head_lead_in_group = QtGui.QGroupBox('Head lead-in')
-            self.head_lead_in_group.setCheckable(True)
-            self.head_lead_in_group.setChecked(False)
-            self.head_lead_in_group.toggled.connect(self.preview)
-            head_lead_in_layout = QtGui.QFormLayout(self.head_lead_in_group)
-            layout.addRow(self.head_lead_in_group)
+            self.bottom_lead_in_height = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.bottom_lead_in_height.setProperty('value', 3 * App.Units.MilliMetre)
+            self.bottom_lead_in_height.editingFinished.connect(self.preview)
+            bottom_lead_in_layout.addRow('Height:', self.bottom_lead_in_height)
 
-            self.head_lead_in_height = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.head_lead_in_height.setProperty('value', 3 * App.Units.MilliMetre)
-            self.head_lead_in_height.editingFinished.connect(self.preview)
-            head_lead_in_layout.addRow('Height:', self.head_lead_in_height)
-
-            self.head_lead_in_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.head_lead_in_radius.setProperty('value', 9 * App.Units.MilliMetre)
-            self.head_lead_in_radius.editingFinished.connect(self.preview)
-            head_lead_in_layout.addRow('Radius:', self.head_lead_in_radius)
+            self.bottom_lead_in_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.bottom_lead_in_radius.setProperty('value', 9 * App.Units.MilliMetre)
+            self.bottom_lead_in_radius.editingFinished.connect(self.preview)
+            bottom_lead_in_layout.addRow('Radius:', self.bottom_lead_in_radius)
 
             doc.openTransaction('Create screw')
             self.preview()  # Initial launch
@@ -169,15 +146,15 @@ def run(doc: App.Document) -> None:
 
             # Surface parameters
             # ------------------
-            surface_point_end_radius = self.cone_point_end_radius.property('value')
-            surface_point_head_radius = self.cone_point_head_radius.property('value')
-            surface_height = self.cone_height.property('value')
-            surface_cone_angle = cone_frustum_to_angle(surface_point_end_radius, surface_point_head_radius, surface_height)
+            minor_cone = ConeFrustumParameters(
+                self.cone_bottom_radius.property('value'),
+                self.cone_top_radius.property('value'),
+                self.cone_distance_between_radiuses.property('value')
+            )
 
             # Thread
             # ------
-            thread_profile_heights = []
-            thread_profile_widths = []
+            thread_profile_extents_set = ThreadProfileExtentsSet()
             if self.thread_group.isChecked():
                 for i in range(0, self.thread_starts.value()):
                     plane = body.newObject('Part::DatumPlane', f'Thread Profile {i} Plane')
@@ -194,78 +171,62 @@ def run(doc: App.Document) -> None:
                     sketch.MapMode = 'FlatFace'
                     sketch.Visibility = False
                     thread_profile = self.thread_profile_cards[self.thread_profile_combo.currentIndex()]
-                    thread_profile_height, thread_profile_width = thread_profile.sketch(doc, sketch, surface_point_end_radius, surface_cone_angle)
-                    thread_profile_widths.append(thread_profile_width)
-                    thread_profile_heights.append(thread_profile_height)
+                    thread_profile_extents = thread_profile.sketch(doc, sketch, minor_cone)
+                    thread_profile_extents_set.add(thread_profile_extents)
 
                     helix = body.newObject('PartDesign::AdditiveHelix', f'Thread Helix {i}')
                     helix.Profile = (sketch, ['', ])
                     helix.ReferenceAxis = (sketch, ['V_Axis'])
                     helix.Mode = 0
-                    helix.Pitch = self.thread_lead.property('value') + (0.0001 * App.Units.MilliMetre)  # You need this 0.0001mm or else the geometry breaks
-                    helix.Height = surface_height + thread_profile_height
-                    helix.Angle = surface_cone_angle
+                    helix.Pitch = self.thread_lead.property('value') + (0.0001 * App.Units.MilliMetre)  # Need 0.0001mm or else the geometry breaks
+                    helix.Height = minor_cone.distance_between_radiuses + thread_profile_extents.underneath_distance  # Height is the height of the frustum + continuing further up until the bottom of the sketch touches the tip of the frustum
+                    helix.Angle = minor_cone.angle
                     helix.Growth = 0
                     helix.LeftHanded = self.thread_left_handed.isChecked()
                     helix.Reversed = 0
 
-
             # Surface generation
             # ------------------
             surface = body.newObject('PartDesign::AdditiveCone', 'Surface Cone')
-            surface.Radius1 = surface_point_end_radius
-            surface.Radius2 = surface_point_head_radius
-            surface.Height = surface_height
+            surface.Radius1 = minor_cone.bottom_radius
+            surface.Radius2 = minor_cone.top_radius
+            surface.Height = minor_cone.distance_between_radiuses
             surface.Angle = 360 * App.Units.Degree
 
             # Thread excess trim
             # ------------------
-            max_thread_profile_height = max(thread_profile_heights, default=0 * App.Units.MilliMetre)
-            max_thread_profile_width = max(thread_profile_widths, default=0 * App.Units.MilliMetre)
-            _excess_thread_trimmer(
-                doc,
+            cut_excess_thread_lower(
                 body,
-                'Lower',
-                surface_point_end_radius,
-                max_thread_profile_height,
-                # THIS IS BROKEN - IT SHOULD BE A CONE BEING EXTENDED IF THE SURFACE SHAPE IS A CONE
-                10000 * App.Units.MilliMetre,  # thread_profile_width cuts too tight and leaves some pieces of the helix remaining in some cases
-                -max_thread_profile_height
+                minor_cone,
+                thread_profile_extents_set.underneath_distance,
+                thread_profile_extents_set.beside_distance
             )
-            _excess_thread_trimmer(
-                doc,
+            cut_excess_thread_upper(
                 body,
-                'Upper',
-                surface_point_head_radius,
-                max_thread_profile_height,
-                # THIS IS BROKEN - IT SHOULD BE A CONE BEING EXTENDED IF THE SURFACE SHAPE IS A CONE
-                10000 * App.Units.MilliMetre,  # thread_profile_width, -- This cuts too tight and leaves some pieces of the helix remaining in some cases
-                surface_height
+                minor_cone,
+                thread_profile_extents_set.underneath_distance + thread_profile_extents_set.ontop_distance,
+                thread_profile_extents_set.beside_distance
             )
 
-            # Lead ins
+            # Lead-ins
             # --------
-            if self.end_lead_in_group.isChecked():
-                end_lead_in_cutter(
+            if self.bottom_lead_in_group.isChecked():
+                cut_lead_in_lower(
                     doc,
                     body,
-                    'End Lead-in',
-                    surface_point_end_radius + thread_profile_width,
-                    surface_point_head_radius + thread_profile_width,
-                    surface_height,
-                    self.end_lead_in_height.property('value'),
-                    self.end_lead_in_radius.property('value')
+                    minor_cone,
+                    self.bottom_lead_in_radius.property('value'),
+                    self.bottom_lead_in_height.property('value'),
+                    thread_profile_extents_set.beside_distance
                 )
-            if self.head_lead_in_group.isChecked():
-                head_lead_in_cutter(
+            if self.top_lead_in_group.isChecked():
+                cut_lead_in_upper(
                     doc,
                     body,
-                    'Head Lead-in',
-                    surface_point_end_radius + thread_profile_width,
-                    surface_point_head_radius + thread_profile_width,
-                    surface_height,
-                    self.head_lead_in_height.property('value'),
-                    self.head_lead_in_radius.property('value')
+                    minor_cone,
+                    self.top_lead_in_height.property('value'),
+                    self.top_lead_in_radius.property('value'),
+                    thread_profile_extents_set.beside_distance
                 )
 
             Gui.Selection.clearSelection()
