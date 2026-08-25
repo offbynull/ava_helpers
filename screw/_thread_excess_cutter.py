@@ -1,13 +1,13 @@
 import FreeCAD as App
 
-from screw.cone_frustum_parameters import ConeFrustumParameters
+from screw.geometries.cone_frustum import ConeFrustum
 
 _BUFFER = 10 * App.Units.MilliMetre
 
 
 def cut_excess_thread_lower(
         body: App.DocumentObject,
-        minor_cone: ConeFrustumParameters,
+        minor_cone: ConeFrustum,
         cut_distance: App.Units.Quantity,
         thread_profile_x_protrusion_distance: App.Units.Quantity,
 ):
@@ -26,7 +26,7 @@ def cut_excess_thread_lower(
 
 def cut_excess_thread_upper(
         body: App.DocumentObject,
-        minor_cone: ConeFrustumParameters,
+        minor_cone: ConeFrustum,
         cut_distance: App.Units.Quantity,
         thread_profile_x_protrusion_distance: App.Units.Quantity,
 ):

@@ -4,7 +4,7 @@ import Part
 import Sketcher
 from PySide import QtGui as QtWidgets
 
-from screw.cone_frustum_parameters import ConeFrustumParameters
+from screw.geometries.cone_frustum import ConeFrustum
 from screw.thread_profile_extents import ThreadProfileExtents
 
 NAME = 'Square'
@@ -20,7 +20,7 @@ class Card:
 
         layout.addRow('Length:', self.length)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustumParameters):
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum):
         s = self.length.property('value') / 2
         top_left = [-s, -s, 0]
         top_right = [s, -s, 0]
@@ -50,5 +50,9 @@ class Card:
         sketch.addConstraint(Sketcher.Constraint('DistanceY', 3, 2, 3, 1, s * 2 - (0.001 * App.Units.MilliMetre)))  # shrink slightly to avoid problems with helix fusing on pitch that makes the helix touch (e.g., thread profile with 2mm rise and a 2mm pitch)
         sketch.addConstraint(Sketcher.Constraint('DistanceX', 2, 2, minor_cone.bottom_radius))
         sketch.addConstraint(Sketcher.Constraint('DistanceY', 2, 2, 0))
+
         doc.recompute([sketch])
-        return ThreadProfileExtents(sketch.Shape.BoundBox, minor_cone.bottom_radius)
+        shape = sketch.Shape.copy()
+        inverted_placement_matrix = sketch.Placement.inverse().toMatrix()
+        shape.transformShape(inverted_placement_matrix, True)
+        return ThreadProfileExtents(shape.BoundBox, minor_cone.bottom_radius)

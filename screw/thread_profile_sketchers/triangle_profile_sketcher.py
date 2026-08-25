@@ -4,7 +4,7 @@ import Part
 import Sketcher
 from PySide import QtGui as QtWidgets
 
-from screw.cone_frustum_parameters import ConeFrustumParameters
+from screw.geometries.cone_frustum import ConeFrustum
 from screw.thread_profile_extents import ThreadProfileExtents
 
 NAME = 'Triangle'
@@ -26,7 +26,7 @@ class Card:
         self.angle.editingFinished.connect(preview)
         layout.addRow('Angle:', self.angle)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustumParameters):
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum):
         height = self.height.property('value')
         top_left = [-height, -height, 0]
         bottom_left = [-height, height, 0]
@@ -52,5 +52,9 @@ class Card:
         sketch.addConstraint(Sketcher.Constraint('Angle', -1, 2, 2, 1, slope))
         sketch.addConstraint(Sketcher.Constraint('DistanceY', 0, 2, -height / 2))
         sketch.addConstraint(Sketcher.Constraint('DistanceX', 1, 2, minor_cone.bottom_radius))
+
         doc.recompute([sketch])
-        return ThreadProfileExtents(sketch.Shape.BoundBox, minor_cone.bottom_radius)
+        shape = sketch.Shape.copy()
+        inverted_placement_matrix = sketch.Placement.inverse().toMatrix()
+        shape.transformShape(inverted_placement_matrix, True)
+        return ThreadProfileExtents(shape.BoundBox, minor_cone.bottom_radius)

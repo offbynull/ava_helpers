@@ -3,17 +3,19 @@ import FreeCADGui as Gui
 from PySide import QtGui
 
 from logger import warn
-from screw._lead_in_cutter import cut_lead_in_upper, cut_lead_in_lower
-from screw._thread_excess_cutter import cut_excess_thread_lower, cut_excess_thread_upper
-from screw.cone_frustum_parameters import ConeFrustumParameters
+from screw.geometries.cone_frustum import ConeFrustum
+from screw.feature_builders.minor_shape_feature_builder import build_minor_cone_feature
+from screw.feature_builders.thread_excess_cutter_feature_builders import build_bottom_thread_excess_cutter_feature, \
+    build_top_thread_excess_cutter_feature
+from screw.feature_builders.thread_feature_builder import build_thread_feature
 from screw.thread_profile_extents_set import ThreadProfileExtentsSet
-from screw.thread_profiles import square_profile, triangle_profile, trapezoid_profile
+from screw.thread_profile_sketchers import square_profile_sketcher, triangle_profile_sketcher, trapezoid_profile_sketcher
 from screw.ui_components.tight_stacked_widgets import TightStackedWidget
 
 THREAD_PROFILES = [
-    triangle_profile,
-    square_profile,
-    trapezoid_profile
+    triangle_profile_sketcher,
+    square_profile_sketcher,
+    trapezoid_profile_sketcher
 ]
 
 
@@ -24,8 +26,6 @@ def run(doc: App.Document) -> None:
 
     class ScrewCreateTaskPanel:
         def __init__(self):
-            self.form = QtGui.QWidget()
-
             self.form = QtGui.QWidget()
             layout = QtGui.QFormLayout(self.form)
 
@@ -110,10 +110,10 @@ def run(doc: App.Document) -> None:
             self.top_lead_in_height.editingFinished.connect(self.preview)
             top_lead_in_layout.addRow('Height:', self.top_lead_in_height)
 
-            self.top_lead_in_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.top_lead_in_radius.setProperty('value', 9 * App.Units.MilliMetre)
-            self.top_lead_in_radius.editingFinished.connect(self.preview)
-            top_lead_in_layout.addRow('Radius:', self.top_lead_in_radius)
+            self.top_lead_in_radius_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.top_lead_in_radius_offset.setProperty('value', -3 * App.Units.MilliMetre)
+            self.top_lead_in_radius_offset.editingFinished.connect(self.preview)
+            top_lead_in_layout.addRow('Radius:', self.top_lead_in_radius_offset)
             
             # Bottom lead-in
             # --------------
@@ -129,10 +129,10 @@ def run(doc: App.Document) -> None:
             self.bottom_lead_in_height.editingFinished.connect(self.preview)
             bottom_lead_in_layout.addRow('Height:', self.bottom_lead_in_height)
 
-            self.bottom_lead_in_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.bottom_lead_in_radius.setProperty('value', 9 * App.Units.MilliMetre)
-            self.bottom_lead_in_radius.editingFinished.connect(self.preview)
-            bottom_lead_in_layout.addRow('Radius:', self.bottom_lead_in_radius)
+            self.bottom_lead_in_radius_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+            self.bottom_lead_in_radius_offset.setProperty('value', -3 * App.Units.MilliMetre)
+            self.bottom_lead_in_radius_offset.editingFinished.connect(self.preview)
+            bottom_lead_in_layout.addRow('Radius:', self.bottom_lead_in_radius_offset)
 
             doc.openTransaction('Create screw')
             self.preview()  # Initial launch
@@ -146,7 +146,7 @@ def run(doc: App.Document) -> None:
 
             # Surface parameters
             # ------------------
-            minor_cone = ConeFrustumParameters(
+            minor_cone = ConeFrustum(
                 self.cone_bottom_radius.property('value'),
                 self.cone_top_radius.property('value'),
                 self.cone_distance_between_radiuses.property('value')
@@ -174,60 +174,42 @@ def run(doc: App.Document) -> None:
                     thread_profile_extents = thread_profile.sketch(doc, sketch, minor_cone)
                     thread_profile_extents_set.add(thread_profile_extents)
 
-                    helix = body.newObject('PartDesign::AdditiveHelix', f'Thread Helix {i}')
-                    helix.Profile = (sketch, ['', ])
-                    helix.ReferenceAxis = (sketch, ['V_Axis'])
-                    helix.Mode = 0
-                    helix.Pitch = self.thread_lead.property('value') + (0.0001 * App.Units.MilliMetre)  # Need 0.0001mm or else the geometry breaks
-                    helix.Height = minor_cone.distance_between_radiuses + thread_profile_extents.underneath_distance  # Height is the height of the frustum + continuing further up until the bottom of the sketch touches the tip of the frustum
-                    helix.Angle = minor_cone.angle
-                    helix.Growth = 0
-                    helix.LeftHanded = self.thread_left_handed.isChecked()
-                    helix.Reversed = 0
+                    build_thread_feature(doc, body, i, minor_cone, sketch, thread_profile_extents,
+                                         self.thread_lead.property('value'), self.thread_left_handed.isChecked())
 
             # Surface generation
             # ------------------
-            surface = body.newObject('PartDesign::AdditiveCone', 'Surface Cone')
-            surface.Radius1 = minor_cone.bottom_radius
-            surface.Radius2 = minor_cone.top_radius
-            surface.Height = minor_cone.distance_between_radiuses
-            surface.Angle = 360 * App.Units.Degree
+            build_minor_cone_feature(doc, body, minor_cone)
 
             # Thread excess trim
             # ------------------
-            cut_excess_thread_lower(
-                body,
-                minor_cone,
-                thread_profile_extents_set.underneath_distance,
-                thread_profile_extents_set.beside_distance
-            )
-            cut_excess_thread_upper(
-                body,
-                minor_cone,
-                thread_profile_extents_set.underneath_distance + thread_profile_extents_set.ontop_distance,
-                thread_profile_extents_set.beside_distance
-            )
+            build_bottom_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents_set)
+            build_top_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents_set)
 
             # Lead-ins
             # --------
-            if self.bottom_lead_in_group.isChecked():
-                cut_lead_in_lower(
-                    doc,
-                    body,
-                    minor_cone,
-                    self.bottom_lead_in_radius.property('value'),
-                    self.bottom_lead_in_height.property('value'),
-                    thread_profile_extents_set.beside_distance
-                )
-            if self.top_lead_in_group.isChecked():
-                cut_lead_in_upper(
-                    doc,
-                    body,
-                    minor_cone,
-                    self.top_lead_in_height.property('value'),
-                    self.top_lead_in_radius.property('value'),
-                    thread_profile_extents_set.beside_distance
-                )
+            # if self.bottom_lead_in_group.isChecked():
+            #     build_bottom_lead_in_cutter_feature(
+            #         doc,
+            #         body,
+            #         minor_cone,
+            #         LeadInParameters(
+            #             self.bottom_lead_in_radius_offset.property('value'),
+            #             self.bottom_lead_in_height.property('value')
+            #         ),
+            #         thread_profile_extents_set
+            #     )
+            # if self.top_lead_in_group.isChecked():
+            #     build_top_lead_in_cutter_feature(
+            #         doc,
+            #         body,
+            #         minor_cone,
+            #         LeadInParameters(
+            #             self.top_lead_in_radius_offset.property('value'),
+            #             self.top_lead_in_height.property('value')
+            #         ),
+            #         thread_profile_extents_set
+            #     )
 
             Gui.Selection.clearSelection()
             # Gui.Selection.addSelection(body.Document.Name, body.Name)

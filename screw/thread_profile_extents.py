@@ -15,11 +15,11 @@ class ThreadProfileExtents:
     def __post_init__(self, bbox: App.BoundBox, radius: App.Units.Quantity):
         object.__setattr__(
             self, "underneath_distance",
-            bbox.ZMax * App.Units.MilliMetre
+            -bbox.YMin * App.Units.MilliMetre
         )
         object.__setattr__(
             self, "ontop_distance",
-            bbox.ZMin * App.Units.MilliMetre
+            bbox.YMax * App.Units.MilliMetre
         )
         object.__setattr__(
             self, "beside_distance",
