@@ -3,6 +3,7 @@ from functools import cached_property
 
 import FreeCAD as App
 
+
 _ZERO_MM = 0 * App.Units.MilliMetre
 
 _ZERO_DEG = 0 * App.Units.Degree
@@ -31,11 +32,27 @@ class Cylinder:
     def distance_between_radiuses(self):
         return self.distance_between_ends
 
+    @cached_property
+    def angle(self):
+        return _ZERO_DEG
+
     def widen(self, radius_offset: App.Units.Quantity):
         return Cylinder(
             self.radius + radius_offset,
             self.distance_between_ends
         )
+
+    def widen_bottom(self, radius_offset: App.Units.Quantity):
+        return self.widen(radius_offset)
+
+    def widen_top(self, radius_offset: App.Units.Quantity):
+        return self.widen(radius_offset)
+
+    def widen_closer(self, radius_offset: App.Units.Quantity):
+        return self.widen(radius_offset)
+
+    def widen_farther(self, radius_offset: App.Units.Quantity):
+        return self.widen(radius_offset)
 
     def lengthen(self, distance_offset: App.Units.Quantity):
         return Cylinder(

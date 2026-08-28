@@ -1,6 +1,7 @@
 import FreeCAD as App
 
 from screw.geometries.cone_frustum import ConeFrustum
+from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
 
 
@@ -8,7 +9,7 @@ def build_thread_feature(
         doc: App.Document,
         body: App.DocumentObject,
         index: int,
-        minor_cone: ConeFrustum,
+        minor_cone: ConeFrustum | Cylinder,
         thread_profile_sketch: App.DocumentObject,
         thread_profile_extents: ThreadProfileExtents,
         thread_lead: App.Units.Quantity,

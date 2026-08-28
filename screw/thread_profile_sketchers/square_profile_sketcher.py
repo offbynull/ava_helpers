@@ -5,6 +5,7 @@ import Sketcher
 from PySide import QtGui as QtWidgets
 
 from screw.geometries.cone_frustum import ConeFrustum
+from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
 
 NAME = 'Square'
@@ -20,7 +21,7 @@ class Card:
 
         layout.addRow('Length:', self.length)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum):
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum | Cylinder):
         s = self.length.property('value') / 2
         top_left = [-s, -s, 0]
         top_right = [s, -s, 0]

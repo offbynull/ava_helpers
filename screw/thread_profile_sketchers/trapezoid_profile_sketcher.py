@@ -7,6 +7,7 @@ import Sketcher
 from PySide import QtGui as QtWidgets
 
 from screw.geometries.cone_frustum import ConeFrustum
+from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
 
 NAME = 'Trapezoid'
@@ -58,7 +59,7 @@ class Card:
         self.blunt_head_angle.editingFinished.connect(preview)
         round_tip_layout.addRow('Blunt head angle:', self.blunt_head_angle)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum):
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum | Cylinder):
         raw_trapezoid_base = self.base.property('value').Value
         raw_trapezoid_height = self.height.property('value').Value
         top_left = [0, 0, 0]

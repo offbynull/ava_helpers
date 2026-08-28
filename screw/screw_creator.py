@@ -3,13 +3,17 @@ import FreeCADGui as Gui
 from PySide import QtGui
 
 from logger import warn
-from screw.geometries.cone_frustum import ConeFrustum
+from screw.feature_builders.lead_in_cutter_feature_builders import build_bottom_lead_in_cutter_feature, \
+    build_top_lead_in_cutter_feature
 from screw.feature_builders.minor_shape_feature_builder import build_minor_cone_feature
 from screw.feature_builders.thread_excess_cutter_feature_builders import build_bottom_thread_excess_cutter_feature, \
     build_top_thread_excess_cutter_feature
 from screw.feature_builders.thread_feature_builder import build_thread_feature
+from screw.geometries.cone_frustum import ConeFrustum
+from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents_set import ThreadProfileExtentsSet
-from screw.thread_profile_sketchers import square_profile_sketcher, triangle_profile_sketcher, trapezoid_profile_sketcher
+from screw.thread_profile_sketchers import square_profile_sketcher, triangle_profile_sketcher, \
+    trapezoid_profile_sketcher
 from screw.ui_components.tight_stacked_widgets import TightStackedWidget
 
 THREAD_PROFILES = [
@@ -146,11 +150,17 @@ def run(doc: App.Document) -> None:
 
             # Surface parameters
             # ------------------
-            minor_cone = ConeFrustum(
-                self.cone_bottom_radius.property('value'),
-                self.cone_top_radius.property('value'),
-                self.cone_distance_between_radiuses.property('value')
-            )
+            if self.cone_bottom_radius.property('value') != self.cone_top_radius.property('value'):
+                minor_cone = ConeFrustum(
+                    self.cone_bottom_radius.property('value'),
+                    self.cone_top_radius.property('value'),
+                    self.cone_distance_between_radiuses.property('value')
+                )
+            else:
+                minor_cone = Cylinder(
+                    self.cone_bottom_radius.property('value'),
+                    self.cone_distance_between_radiuses.property('value')
+                )
 
             # Thread
             # ------
@@ -188,28 +198,24 @@ def run(doc: App.Document) -> None:
 
             # Lead-ins
             # --------
-            # if self.bottom_lead_in_group.isChecked():
-            #     build_bottom_lead_in_cutter_feature(
-            #         doc,
-            #         body,
-            #         minor_cone,
-            #         LeadInParameters(
-            #             self.bottom_lead_in_radius_offset.property('value'),
-            #             self.bottom_lead_in_height.property('value')
-            #         ),
-            #         thread_profile_extents_set
-            #     )
-            # if self.top_lead_in_group.isChecked():
-            #     build_top_lead_in_cutter_feature(
-            #         doc,
-            #         body,
-            #         minor_cone,
-            #         LeadInParameters(
-            #             self.top_lead_in_radius_offset.property('value'),
-            #             self.top_lead_in_height.property('value')
-            #         ),
-            #         thread_profile_extents_set
-            #     )
+            if self.bottom_lead_in_group.isChecked():
+                build_bottom_lead_in_cutter_feature(
+                    doc,
+                    body,
+                    minor_cone,
+                    self.bottom_lead_in_radius_offset.property('value'),
+                    self.bottom_lead_in_height.property('value'),
+                    thread_profile_extents_set
+                )
+            if self.top_lead_in_group.isChecked():
+                build_top_lead_in_cutter_feature(
+                    doc,
+                    body,
+                    minor_cone,
+                    self.top_lead_in_radius_offset.property('value'),
+                    self.top_lead_in_height.property('value'),
+                    thread_profile_extents_set
+                )
 
             Gui.Selection.clearSelection()
             # Gui.Selection.addSelection(body.Document.Name, body.Name)

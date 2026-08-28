@@ -2,6 +2,8 @@ from dataclasses import dataclass, field, InitVar
 
 import FreeCAD as App
 
+import logger
+
 
 @dataclass(frozen=True)
 class ThreadProfileExtents:

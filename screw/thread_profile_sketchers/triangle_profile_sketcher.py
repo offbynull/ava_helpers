@@ -5,6 +5,7 @@ import Sketcher
 from PySide import QtGui as QtWidgets
 
 from screw.geometries.cone_frustum import ConeFrustum
+from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
 
 NAME = 'Triangle'
@@ -26,7 +27,7 @@ class Card:
         self.angle.editingFinished.connect(preview)
         layout.addRow('Angle:', self.angle)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum):
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum | Cylinder):
         height = self.height.property('value')
         top_left = [-height, -height, 0]
         bottom_left = [-height, height, 0]
