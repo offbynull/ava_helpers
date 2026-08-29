@@ -6,17 +6,20 @@ from logger import warn
 from screw.feature_builders.lead_in_cutter_feature_builders import build_bottom_lead_in_cutter_feature, \
     build_top_lead_in_cutter_feature
 from screw.feature_builders.minor_shape_feature_builder import build_minor_cone_feature
+from screw.feature_builders.stack_feature_builder import build_stack_feature
 from screw.feature_builders.thread_excess_cutter_feature_builders import build_bottom_thread_excess_cutter_feature, \
     build_top_thread_excess_cutter_feature
 from screw.feature_builders.thread_feature_builder import build_thread_feature
 from screw.geometries.cone_frustum import ConeFrustum
 from screw.geometries.cylinder import Cylinder
-from screw.thread_profile_extents_set import ThreadProfileExtentsSet
+from screw.screw_form import ScrewForm
+from screw.thread_profile_extents import ThreadProfileExtents
 from screw.thread_profile_sketchers import square_profile_sketcher, triangle_profile_sketcher, \
     trapezoid_profile_sketcher
-from screw.ui_components.tight_stacked_widgets import TightStackedWidget
+from screw.ui_components.tab_collection_widget import TabCollection
 
-THREAD_PROFILES = [
+
+_THREAD_PROFILES = [
     triangle_profile_sketcher,
     square_profile_sketcher,
     trapezoid_profile_sketcher
@@ -30,113 +33,12 @@ def run(doc: App.Document) -> None:
 
     class ScrewCreateTaskPanel:
         def __init__(self):
-            self.form = QtGui.QWidget()
-            layout = QtGui.QFormLayout(self.form)
-
-            self.name = QtGui.QLineEdit()
-            self.name.setText('Screw')
-            self.name.setPlaceholderText('Enter name')
-            self.name.editingFinished.connect(self.preview)
-            layout.addRow('Name:', self.name)
-
-            # Surface
-            # -------
-            self.surface_shape_group = QtGui.QGroupBox('Surface')
-            self.surface_shape_group.toggled.connect(self.preview)
-            surface_shape_layout = QtGui.QFormLayout(self.surface_shape_group)
-            layout.addRow(self.surface_shape_group)
-
-            self.cone_distance_between_radiuses = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.cone_distance_between_radiuses.setProperty('value', 50 * App.Units.MilliMetre)
-            self.cone_distance_between_radiuses.editingFinished.connect(self.preview)
-            surface_shape_layout.addRow('Distance:', self.cone_distance_between_radiuses)
-
-            self.cone_top_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.cone_top_radius.setProperty('value', 50 * App.Units.MilliMetre)
-            self.cone_top_radius.editingFinished.connect(self.preview)
-            surface_shape_layout.addRow('Top radius:', self.cone_top_radius)
-
-            self.cone_bottom_radius = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.cone_bottom_radius.setProperty('value', 10 * App.Units.MilliMetre)
-            self.cone_bottom_radius.editingFinished.connect(self.preview)
-            surface_shape_layout.addRow('Bottom radius:', self.cone_bottom_radius)
-
-            # Thread
-            # -------
-            self.thread_group = QtGui.QGroupBox('Thread')
-            self.thread_group.setCheckable(True)
-            self.thread_group.setChecked(True)
-            self.thread_group.toggled.connect(self.preview)
-            thread_layout = QtGui.QFormLayout(self.thread_group)
-            layout.addRow(self.thread_group)
-            
-            self.thread_profile_combo = QtGui.QComboBox()
-            self.thread_profile_stack = TightStackedWidget()
-            self.thread_profile_cards = []
-            for thread_profile in THREAD_PROFILES:
-                self.thread_profile_combo.addItem(thread_profile.NAME)
-                card = thread_profile.Card(self.preview)
-                self.thread_profile_cards.append(card)
-                self.thread_profile_stack.addWidget(card.form)
-            self.thread_profile_combo.currentIndexChanged.connect(self.thread_profile_stack.setCurrentIndex)
-            self.thread_profile_combo.currentIndexChanged.connect(lambda _: self.thread_profile_stack.updateGeometry())
-            self.thread_profile_combo.currentIndexChanged.connect(self.preview)
-            thread_layout.addRow('Profile:', self.thread_profile_combo)
-            thread_layout.addRow(self.thread_profile_stack)
-
-            self.thread_starts = QtGui.QSpinBox()
-            self.thread_starts.setMinimum(1)
-            self.thread_starts.setValue(1)
-            self.thread_starts.editingFinished.connect(self.preview)
-            thread_layout.addRow('Starts:', self.thread_starts)
-
-            self.thread_lead = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.thread_lead.setProperty('value', 5 * App.Units.MilliMetre)
-            self.thread_lead.editingFinished.connect(self.preview)
-            thread_layout.addRow('Lead:', self.thread_lead)
-
-            self.thread_left_handed = Gui.UiLoader().createWidget('QCheckBox')
-            self.thread_left_handed.setChecked(False)
-            self.thread_left_handed.toggled.connect(self.preview)
-            thread_layout.addRow('Left-handed:', self.thread_left_handed)
-
-            # Top lead-in
-            # -----------
-            self.top_lead_in_group = QtGui.QGroupBox('Top lead-in')
-            self.top_lead_in_group.setCheckable(True)
-            self.top_lead_in_group.setChecked(False)
-            self.top_lead_in_group.toggled.connect(self.preview)
-            top_lead_in_layout = QtGui.QFormLayout(self.top_lead_in_group)
-            layout.addRow(self.top_lead_in_group)
-
-            self.top_lead_in_height = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.top_lead_in_height.setProperty('value', 3 * App.Units.MilliMetre)
-            self.top_lead_in_height.editingFinished.connect(self.preview)
-            top_lead_in_layout.addRow('Height:', self.top_lead_in_height)
-
-            self.top_lead_in_radius_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.top_lead_in_radius_offset.setProperty('value', -3 * App.Units.MilliMetre)
-            self.top_lead_in_radius_offset.editingFinished.connect(self.preview)
-            top_lead_in_layout.addRow('Radius:', self.top_lead_in_radius_offset)
-            
-            # Bottom lead-in
-            # --------------
-            self.bottom_lead_in_group = QtGui.QGroupBox('Bottom lead-in')
-            self.bottom_lead_in_group.setCheckable(True)
-            self.bottom_lead_in_group.setChecked(False)
-            self.bottom_lead_in_group.toggled.connect(self.preview)
-            bottom_lead_in_layout = QtGui.QFormLayout(self.bottom_lead_in_group)
-            layout.addRow(self.bottom_lead_in_group)
-
-            self.bottom_lead_in_height = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.bottom_lead_in_height.setProperty('value', 3 * App.Units.MilliMetre)
-            self.bottom_lead_in_height.editingFinished.connect(self.preview)
-            bottom_lead_in_layout.addRow('Height:', self.bottom_lead_in_height)
-
-            self.bottom_lead_in_radius_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-            self.bottom_lead_in_radius_offset.setProperty('value', -3 * App.Units.MilliMetre)
-            self.bottom_lead_in_radius_offset.editingFinished.connect(self.preview)
-            bottom_lead_in_layout.addRow('Radius:', self.bottom_lead_in_radius_offset)
+            self.form = TabCollection(
+                lambda i: (f'{i}', ScrewForm(_THREAD_PROFILES, self.preview, self.form)),
+                self.preview
+            )
+            self.form.add()
+            # self.form = ScrewForm(_THREAD_PROFILES, self.preview)
 
             doc.openTransaction('Create screw')
             self.preview()  # Initial launch
@@ -145,77 +47,93 @@ def run(doc: App.Document) -> None:
             doc.abortTransaction()
             doc.openTransaction('Create screw')
 
-            name = self.name.text()
-            body = doc.addObject('PartDesign::Body', name)
+            child_bodies = []
+            for i, screw_form in enumerate(self.form.widgets()):
+                name = screw_form.name
+                body = doc.addObject('PartDesign::Body', name)
 
-            # Surface parameters
-            # ------------------
-            if self.cone_bottom_radius.property('value') != self.cone_top_radius.property('value'):
-                minor_cone = ConeFrustum(
-                    self.cone_bottom_radius.property('value'),
-                    self.cone_top_radius.property('value'),
-                    self.cone_distance_between_radiuses.property('value')
-                )
-            else:
-                minor_cone = Cylinder(
-                    self.cone_bottom_radius.property('value'),
-                    self.cone_distance_between_radiuses.property('value')
-                )
-
-            # Thread
-            # ------
-            thread_profile_extents_set = ThreadProfileExtentsSet()
-            if self.thread_group.isChecked():
-                for i in range(0, self.thread_starts.value()):
-                    plane = body.newObject('Part::DatumPlane', f'Thread Profile {i} Plane')
-                    plane.AttachmentOffset = App.Placement(
-                        App.Vector(0.0, 0.0, 0.0),
-                        App.Rotation(0.0, i / self.thread_starts.value() * 360.0, 0.0)
+                # Surface parameters
+                # ------------------
+                if screw_form.cone_bottom_radius != screw_form.cone_top_radius:
+                    minor_cone = ConeFrustum(
+                        screw_form.cone_bottom_radius,
+                        screw_form.cone_top_radius,
+                        screw_form.cone_distance_between_radiuses
                     )
-                    plane.MapReversed = False
-                    plane.AttachmentSupport = [(body.Origin, '')]
-                    plane.MapMode = 'ObjectXZ'
-                    plane.Visibility = False
-                    sketch = body.newObject('Sketcher::SketchObject', f'Thread Profile {i}')
-                    sketch.AttachmentSupport = plane, []
-                    sketch.MapMode = 'FlatFace'
-                    sketch.Visibility = False
-                    thread_profile = self.thread_profile_cards[self.thread_profile_combo.currentIndex()]
-                    thread_profile_extents = thread_profile.sketch(doc, sketch, minor_cone)
-                    thread_profile_extents_set.add(thread_profile_extents)
+                else:
+                    minor_cone = Cylinder(
+                        screw_form.cone_bottom_radius,
+                        screw_form.cone_distance_between_radiuses
+                    )
 
-                    build_thread_feature(doc, body, i, minor_cone, sketch, thread_profile_extents,
-                                         self.thread_lead.property('value'), self.thread_left_handed.isChecked())
+                # Thread
+                # ------
+                thread_profile_extents = ThreadProfileExtents.zero()
+                if screw_form.threaded:
+                    for i in range(0, screw_form.thread_starts):
+                        plane = body.newObject('Part::DatumPlane', f'Thread Profile {i} Plane')
+                        plane.AttachmentOffset = App.Placement(
+                            App.Vector(0.0, 0.0, 0.0),
+                            App.Rotation(0.0, i / screw_form.thread_starts * 360.0, 0.0)
+                        )
+                        plane.MapReversed = False
+                        plane.AttachmentSupport = [(body.Origin, '')]
+                        plane.MapMode = 'ObjectXZ'
+                        plane.Visibility = False
+                        sketch = body.newObject('Sketcher::SketchObject', f'Thread Profile {i}')
+                        sketch.AttachmentSupport = plane, []
+                        sketch.MapMode = 'FlatFace'
+                        sketch.Visibility = False
+                        # It's the same sketch being generated everytime, but on a different face. The extents should always
+                        # be the same (or close enough, there may be rounding error). As such, the extents don't need to be
+                        # overridden here but it also doesn't really matter if they are.
+                        thread_profile_extents = screw_form.thread_profile_card.sketch(doc, sketch, minor_cone)
+                        build_thread_feature(
+                            doc,
+                            body,
+                            i,
+                            minor_cone,
+                            sketch,
+                            thread_profile_extents,
+                            screw_form.thread_lead,
+                            screw_form.thread_left_handed
+                        )
 
-            # Surface generation
-            # ------------------
-            build_minor_cone_feature(doc, body, minor_cone)
+                # Surface generation
+                # ------------------
+                build_minor_cone_feature(doc, body, minor_cone)
 
-            # Thread excess trim
-            # ------------------
-            build_bottom_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents_set)
-            build_top_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents_set)
+                # Thread excess trim
+                # ------------------
+                if screw_form.threaded:
+                    build_bottom_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents)
+                    build_top_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents)
 
-            # Lead-ins
-            # --------
-            if self.bottom_lead_in_group.isChecked():
-                build_bottom_lead_in_cutter_feature(
-                    doc,
-                    body,
-                    minor_cone,
-                    self.bottom_lead_in_radius_offset.property('value'),
-                    self.bottom_lead_in_height.property('value'),
-                    thread_profile_extents_set
-                )
-            if self.top_lead_in_group.isChecked():
-                build_top_lead_in_cutter_feature(
-                    doc,
-                    body,
-                    minor_cone,
-                    self.top_lead_in_radius_offset.property('value'),
-                    self.top_lead_in_height.property('value'),
-                    thread_profile_extents_set
-                )
+                # Lead-ins
+                # --------
+                if screw_form.bottom_led_in:
+                    build_bottom_lead_in_cutter_feature(
+                        doc,
+                        body,
+                        minor_cone,
+                        screw_form.bottom_lead_in_radius_offset,
+                        screw_form.bottom_lead_in_height,
+                        thread_profile_extents
+                    )
+                if screw_form.top_led_in:
+                    build_top_lead_in_cutter_feature(
+                        doc,
+                        body,
+                        minor_cone,
+                        screw_form.top_lead_in_radius_offset,
+                        screw_form.top_lead_in_height,
+                        thread_profile_extents
+                    )
+
+                child_bodies.append(body)
+
+            parent_body = doc.addObject('PartDesign::Body', 'Final Screw')
+            build_stack_feature(doc, parent_body, child_bodies)
 
             Gui.Selection.clearSelection()
             # Gui.Selection.addSelection(body.Document.Name, body.Name)

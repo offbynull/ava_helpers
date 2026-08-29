@@ -2,7 +2,10 @@ from dataclasses import dataclass, field, InitVar
 
 import FreeCAD as App
 
-import logger
+from screw.geometries.cone_frustum import ConeFrustum
+from screw.geometries.cylinder import Cylinder
+
+_ZERO_MM = 0 * App.Units.MilliMetre
 
 
 @dataclass(frozen=True)
@@ -27,3 +30,11 @@ class ThreadProfileExtents:
             self, "beside_distance",
            (bbox.XMax * App.Units.MilliMetre) - radius
         )
+
+    @property
+    def height(self):
+        return self.underneath_distance + self.ontop_distance
+
+    @staticmethod
+    def zero():
+        return ThreadProfileExtents(App.BoundBox(0.0), _ZERO_MM)
