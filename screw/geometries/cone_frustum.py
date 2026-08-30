@@ -344,7 +344,7 @@ class ConeFrustum:
         ret.Profile = (sketch, ['', ])
         ret.ReferenceAxis = (sketch, ['V_Axis'])
         ret.Mode = 0
-        ret.Pitch = lead + (0.0001 * App.Units.MilliMetre)  # Need 0.0001mm or else the geometry breaks
+        ret.Pitch = lead  # + (0.0001 * App.Units.MilliMetre)  # Need 0.0001mm or else the geometry breaks
         ret.Height = self.distance_between_radiuses
         ret.Angle = self.angle if self.direction == Direction.UP else -self.angle
         ret.Growth = 0

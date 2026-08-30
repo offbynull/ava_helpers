@@ -68,7 +68,7 @@ def run(doc: App.Document) -> None:
 
                 # Thread
                 # ------
-                thread_profile_extents = ThreadProfileExtents.zero()
+                thread_profile_extents = None
                 if screw_form.threaded:
                     for i in range(0, screw_form.thread_starts):
                         plane = body.newObject('Part::DatumPlane', f'Thread Profile {i} Plane')

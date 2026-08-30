@@ -3,6 +3,7 @@ import FreeCAD as App
 from screw.geometries.cone_frustum import ConeFrustum
 from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
+from screw.utils import minor_shape_to_major_shape
 
 _BUFFER = 10 * App.Units.MilliMetre
 
@@ -16,8 +17,8 @@ def build_bottom_lead_in_cutter_feature(
         thread_profile_extents: ThreadProfileExtents
 ):
     cut_body = doc.addObject('PartDesign::Body', 'Bottom Lead-in Cut Body')
-    thread_protrusion = thread_profile_extents.beside_distance
-    major_shape = minor_shape.widen(thread_protrusion)
+    major_shape = minor_shape_to_major_shape(minor_shape, thread_profile_extents)
+    print(f'{major_shape.angle=} {major_shape.bottom_radius=} {major_shape.top_radius=}')
     truncated_major_shape = major_shape \
         .with_distance_from_bottom(lead_in_distance) \
         .widen(_BUFFER)
@@ -49,8 +50,7 @@ def build_top_lead_in_cutter_feature(
         thread_profile_extents: ThreadProfileExtents
 ):
     cut_body = doc.addObject('PartDesign::Body', 'Top Lead-in Cut Body')
-    thread_protrusion = thread_profile_extents.beside_distance
-    major_shape = minor_shape.widen(thread_protrusion)
+    major_shape = minor_shape_to_major_shape(minor_shape, thread_profile_extents)
     truncated_major_shape = major_shape \
         .with_distance_from_top(lead_in_distance) \
         .widen(_BUFFER)

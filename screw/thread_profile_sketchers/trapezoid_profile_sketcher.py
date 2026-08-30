@@ -150,8 +150,4 @@ class Card:
             sketch.addConstraint(Sketcher.Constraint('Angle', 0, 2, 8, 2, blunt_head_angle))
             sketch.addConstraint(Sketcher.Constraint('Distance', 8, blunt_head_distance))
 
-        doc.recompute([sketch])
-        shape = sketch.Shape.copy()
-        inverted_placement_matrix = sketch.Placement.inverse().toMatrix()
-        shape.transformShape(inverted_placement_matrix, True)
-        return ThreadProfileExtents(shape.BoundBox, minor_cone.bottom_radius)
+        return ThreadProfileExtents(doc, sketch, minor_cone.bottom_radius)

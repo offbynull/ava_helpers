@@ -121,7 +121,7 @@ class Cylinder:
         ret.Profile = (sketch, ['', ])
         ret.ReferenceAxis = (sketch, ['V_Axis'])
         ret.Mode = 0
-        ret.Pitch = lead + (0.0001 * App.Units.MilliMetre)  # Need 0.0001mm or else the geometry breaks
+        ret.Pitch = lead  # + (0.0001 * App.Units.MilliMetre)  # Need 0.0001mm or else the geometry breaks
         ret.Height = self.distance_between_ends
         ret.Angle = _ZERO_DEG
         ret.Growth = 0
