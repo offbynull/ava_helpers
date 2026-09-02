@@ -48,7 +48,6 @@ class ThreadProfileExtents:
         )
         _, points, _ = shape.distToShape(line)
         p = points[0][0]
-
         object.__setattr__(
             self, 'point_with_max_x',
             (

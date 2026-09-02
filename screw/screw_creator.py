@@ -13,16 +13,14 @@ from screw.feature_builders.thread_feature_builder import build_thread_feature
 from screw.geometries.cone_frustum import ConeFrustum
 from screw.geometries.cylinder import Cylinder
 from screw.screw_form import ScrewForm
-from screw.thread_profile_extents import ThreadProfileExtents
 from screw.thread_profile_sketchers import square_profile_sketcher, triangle_profile_sketcher, \
     trapezoid_profile_sketcher
 from screw.ui_components.tab_collection_widget import TabCollection
 
-
 _THREAD_PROFILES = [
+    trapezoid_profile_sketcher,
     triangle_profile_sketcher,
     square_profile_sketcher,
-    trapezoid_profile_sketcher
 ]
 
 
@@ -55,13 +53,13 @@ def run(doc: App.Document) -> None:
                 # Surface parameters
                 # ------------------
                 if screw_form.cone_bottom_radius != screw_form.cone_top_radius:
-                    minor_cone = ConeFrustum(
+                    minor_shape = ConeFrustum(
                         screw_form.cone_bottom_radius,
                         screw_form.cone_top_radius,
                         screw_form.cone_distance_between_radiuses
                     )
                 else:
-                    minor_cone = Cylinder(
+                    minor_shape = Cylinder(
                         screw_form.cone_bottom_radius,
                         screw_form.cone_distance_between_radiuses
                     )
@@ -70,11 +68,37 @@ def run(doc: App.Document) -> None:
                 # ------
                 thread_profile_extents = None
                 if screw_form.threaded:
+                    if isinstance(minor_shape, ConeFrustum):
+                        # TODO: Warn if thread axial offset extends past cone vertex, because the shift will fail.
+                        # TODO: Warn if thread radius offset is 0, because being tangent with the cone results in broken
+                        #       geometry.
+                        minor_shape_thread_adjusted = minor_shape \
+                            .widen(screw_form.thread_radius_offset) \
+                            .shift_bottom(screw_form.thread_axial_offset)
+                    else:
+                        # TODO: Warn if thread radius offset is 0, because being tangent with the cone results in broken
+                        #       geometry.
+                        minor_shape_thread_adjusted = minor_shape \
+                            .widen(screw_form.thread_radius_offset)
                     for i in range(0, screw_form.thread_starts):
                         plane = body.newObject('Part::DatumPlane', f'Thread Profile {i} Plane')
+                        # Each start should be spaced out evenly across 360 degrees. The +.01 is added to avoid the
+                        # first thread from starting n at the cone/cylinder's seam, which is known to result in broken
+                        # geometry.
+                        #
+                        # TODO: Warn if rotation offset is 0.
+                        # TODO: Warn if thread axial offset results in thread that's self-intersecting.
                         plane.AttachmentOffset = App.Placement(
-                            App.Vector(0.0, 0.0, 0.0),
-                            App.Rotation(0.0, i / screw_form.thread_starts * 360.0, 0.0)
+                            App.Vector(
+                                0.0,
+                                screw_form.thread_axial_offset.Value,
+                                0.0
+                            ),
+                            App.Rotation(
+                                0.0,
+                                (i / screw_form.thread_starts * 360.0) + screw_form.thread_rotation_offset.Value,
+                                0.0
+                            )
                         )
                         plane.MapReversed = False
                         plane.AttachmentSupport = [(body.Origin, '')]
@@ -84,15 +108,15 @@ def run(doc: App.Document) -> None:
                         sketch.AttachmentSupport = plane, []
                         sketch.MapMode = 'FlatFace'
                         sketch.Visibility = False
-                        # It's the same sketch being generated everytime, but on a different face. The extents should always
-                        # be the same (or close enough, there may be rounding error). As such, the extents don't need to be
-                        # overridden here but it also doesn't really matter if they are.
-                        thread_profile_extents = screw_form.thread_profile_card.sketch(doc, sketch, minor_cone)
+                        # It's the same sketch being generated everytime, but on a different face. The extents should
+                        # always be the same (or close enough, there may be rounding error). As such, the extents don't
+                        # need to be overridden here, but it also doesn't really matter if it is.
+                        thread_profile_extents = screw_form.thread_profile_card.sketch(doc, sketch, minor_shape_thread_adjusted)
                         build_thread_feature(
                             doc,
                             body,
                             i,
-                            minor_cone,
+                            minor_shape_thread_adjusted,
                             sketch,
                             thread_profile_extents,
                             screw_form.thread_lead,
@@ -101,13 +125,13 @@ def run(doc: App.Document) -> None:
 
                 # Surface generation
                 # ------------------
-                build_minor_cone_feature(doc, body, minor_cone)
+                build_minor_cone_feature(doc, body, minor_shape)
 
                 # Thread excess trim
                 # ------------------
                 if screw_form.threaded:
-                    build_bottom_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents)
-                    build_top_thread_excess_cutter_feature(doc, body, minor_cone, thread_profile_extents)
+                    build_bottom_thread_excess_cutter_feature(doc, body, minor_shape, thread_profile_extents)
+                    build_top_thread_excess_cutter_feature(doc, body, minor_shape, thread_profile_extents)
 
                 # Lead-ins
                 # --------
@@ -115,7 +139,7 @@ def run(doc: App.Document) -> None:
                     build_bottom_lead_in_cutter_feature(
                         doc,
                         body,
-                        minor_cone,
+                        minor_shape,
                         screw_form.bottom_lead_in_radius_offset,
                         screw_form.bottom_lead_in_height,
                         thread_profile_extents
@@ -124,7 +148,7 @@ def run(doc: App.Document) -> None:
                     build_top_lead_in_cutter_feature(
                         doc,
                         body,
-                        minor_cone,
+                        minor_shape,
                         screw_form.top_lead_in_radius_offset,
                         screw_form.top_lead_in_height,
                         thread_profile_extents

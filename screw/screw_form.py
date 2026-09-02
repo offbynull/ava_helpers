@@ -47,6 +47,19 @@ class ScrewForm(QtGui.QWidget):
         self._cone_bottom_radius.editingFinished.connect(self._preview)
         surface_shape_layout.addRow('Bottom radius:', self._cone_bottom_radius)
 
+        self._cone_radius_swap = QtGui.QToolButton()
+        self._cone_radius_swap.setText('Swap radii ⇆')
+
+        def _swap_radius():
+            bottom_radius = self._cone_bottom_radius.property('value')
+            top_radius = self._cone_top_radius.property('value')
+            self._cone_bottom_radius.setProperty('value', top_radius)
+            self._cone_top_radius.setProperty('value', bottom_radius)
+            self._preview()
+
+        self._cone_radius_swap.clicked.connect(_swap_radius)
+        surface_shape_layout.addRow(self._cone_radius_swap)
+
         # Thread
         # -------
         self._thread_group = QtGui.QGroupBox('Thread')
@@ -85,6 +98,21 @@ class ScrewForm(QtGui.QWidget):
         self._thread_left_handed.setChecked(False)
         self._thread_left_handed.toggled.connect(self._preview)
         thread_layout.addRow('Left-handed:', self._thread_left_handed)
+
+        self._thread_axial_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self._thread_axial_offset.setProperty('value', 0 * App.Units.MilliMetre)
+        self._thread_axial_offset.editingFinished.connect(self._preview)
+        thread_layout.addRow('Axial offset:', self._thread_axial_offset)
+
+        self._thread_rotation_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self._thread_rotation_offset.setProperty('value', 90.0 * App.Units.Degree)
+        self._thread_rotation_offset.editingFinished.connect(self._preview)
+        thread_layout.addRow('Rotation offset:', self._thread_rotation_offset)
+
+        self._thread_radius_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self._thread_radius_offset.setProperty('value', -0.01 * App.Units.MilliMetre)
+        self._thread_radius_offset.editingFinished.connect(self._preview)
+        thread_layout.addRow('Radius offset:', self._thread_radius_offset)
 
         # Top lead-in
         # -----------
@@ -163,6 +191,18 @@ class ScrewForm(QtGui.QWidget):
     @property
     def thread_lead(self):
         return self._thread_lead.property('value')
+
+    @property
+    def thread_axial_offset(self):
+        return self._thread_axial_offset.property('value')
+
+    @property
+    def thread_rotation_offset(self):
+        return self._thread_rotation_offset.property('value')
+
+    @property
+    def thread_radius_offset(self):
+        return self._thread_radius_offset.property('value')
 
     @property
     def thread_left_handed(self):

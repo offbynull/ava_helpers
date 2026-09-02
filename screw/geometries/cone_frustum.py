@@ -5,6 +5,7 @@ from functools import cached_property
 import FreeCAD as App
 import math
 
+from screw.thread_profile_extents import ThreadProfileExtents
 
 _ZERO_MM = 0 * App.Units.MilliMetre
 
@@ -330,24 +331,4 @@ class ConeFrustum:
         ret.Radius2 = self.top_radius
         ret.Height = self.distance_between_radiuses
         ret.Angle = 360 * App.Units.Degree
-        return ret
-
-    def create_partdesign_additive_helix(
-            self,
-            body: App.DocumentObject,
-            name: str,
-            sketch: App.DocumentObject,
-            lead: App.Units.Quantity,
-            left_handed: bool
-    ):
-        ret = body.newObject('PartDesign::AdditiveHelix', name)
-        ret.Profile = (sketch, ['', ])
-        ret.ReferenceAxis = (sketch, ['V_Axis'])
-        ret.Mode = 0
-        ret.Pitch = lead  # + (0.0001 * App.Units.MilliMetre)  # Need 0.0001mm or else the geometry breaks
-        ret.Height = self.distance_between_radiuses
-        ret.Angle = self.angle if self.direction == Direction.UP else -self.angle
-        ret.Growth = 0
-        ret.LeftHanded = left_handed
-        ret.Reversed = 0
         return ret

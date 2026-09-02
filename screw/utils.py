@@ -1,3 +1,4 @@
+import FreeCAD as App
 from screw.geometries.cone_frustum import ConeFrustum
 from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
@@ -34,3 +35,31 @@ def minor_shape_to_major_shape(
     else:
         major_shape = minor_shape.widen(offset_to_bottom_radius)
     return major_shape
+
+
+def offset_attachment_using_parent_coordinates(
+        parent: App.DocumentObject,
+        child: App.DocumentObject,
+        offset: App.Vector
+):
+    parent_rotation = parent.getGlobalPlacement().Rotation
+    child_rotation = child.getGlobalPlacement().Rotation
+    # parent vector -> world -> attachment-local
+    v_offset = child_rotation.inverted().multVec(parent_rotation.multVec(offset))
+    child_offset = child.AttachmentOffset
+    child_offset.Base = child_offset.Base + v_offset
+    child.AttachmentOffset = child_offset
+
+
+def offset_attachment_using_parent_coordinates(
+        parent: App.DocumentObject,
+        child: App.DocumentObject,
+        offset: App.Vector
+):
+    parent_rotation = parent.getGlobalPlacement().Rotation
+    child_rotation = child.getGlobalPlacement().Rotation
+    # parent vector -> world -> attachment-local
+    v_offset = child_rotation.inverted().multVec(parent_rotation.multVec(offset))
+    child_offset = child.AttachmentOffset
+    child_offset.Base = child_offset.Base + v_offset
+    child.AttachmentOffset = child_offset
