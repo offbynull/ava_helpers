@@ -109,10 +109,10 @@ class ScrewForm(QtGui.QWidget):
         self._thread_rotation_offset.editingFinished.connect(self._preview)
         thread_layout.addRow('Rotation offset:', self._thread_rotation_offset)
 
-        self._thread_radius_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-        self._thread_radius_offset.setProperty('value', -0.01 * App.Units.MilliMetre)
-        self._thread_radius_offset.editingFinished.connect(self._preview)
-        thread_layout.addRow('Radius offset:', self._thread_radius_offset)
+        self._thread_sink_offset = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self._thread_sink_offset.setProperty('value', 0.1 * App.Units.MilliMetre)
+        self._thread_sink_offset.editingFinished.connect(self._preview)
+        thread_layout.addRow('Radius sink offset:', self._thread_sink_offset)
 
         # Top lead-in
         # -----------
@@ -201,8 +201,8 @@ class ScrewForm(QtGui.QWidget):
         return self._thread_rotation_offset.property('value')
 
     @property
-    def thread_radius_offset(self):
-        return self._thread_radius_offset.property('value')
+    def thread_sink_offset(self):
+        return self._thread_sink_offset.property('value')
 
     @property
     def thread_left_handed(self):

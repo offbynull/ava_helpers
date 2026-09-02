@@ -7,8 +7,14 @@ from PySide import QtGui as QtWidgets
 from screw.geometries.cone_frustum import ConeFrustum
 from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
+from screw.thread_profile_sketchers import trapezoid_profile_sketcher
 
 NAME = 'Square'
+
+_0_MM = 0.0 * App.Units.MilliMetre
+_0_DEG = 0.0 * App.Units.Degree
+_90_DEG = 90.0 * App.Units.Degree
+_180_DEG = 180.0 * App.Units.Degree
 
 class Card:
     def __init__(self, preview):
@@ -18,38 +24,29 @@ class Card:
         self.length = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
         self.length.setProperty('value', App.Units.Quantity(2, 'mm'))
         self.length.editingFinished.connect(preview)
-
         layout.addRow('Length:', self.length)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_cone: ConeFrustum | Cylinder):
-        s = self.length.property('value') / 2
-        top_left = [-s, -s, 0]
-        top_right = [s, -s, 0]
-        bottom_left = [-s, s, 0]
-        bottom_right = [s, s, 0]
-        points = [top_left, top_right, bottom_left, bottom_right]
-        for p in points:
-            p[0] += minor_cone.bottom_radius + s
-            p[1] -= s
-        lines = [
-            Part.LineSegment(App.Vector(*top_left), App.Vector(*top_right)),
-            Part.LineSegment(App.Vector(*top_right), App.Vector(*bottom_right)),
-            Part.LineSegment(App.Vector(*bottom_right), App.Vector(*bottom_left)),
-            Part.LineSegment(App.Vector(*bottom_left), App.Vector(*top_left)),
-        ]
-        slope = (90 * App.Units.Degree) + minor_cone.angle
-        sketch.addGeometry(lines, False)
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', 0))
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', 2))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', 1))
-        sketch.addConstraint(Sketcher.Constraint('Angle', 3, 1, 2, 2, slope))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 0, 2, 1, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 1, 2, 2, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 2, 2, 3, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 3, 2, 0, 1))
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', 2, 2, 1, 2, s * 2))  # - (0.001  * App.Units.MilliMetre)))  # shrink slightly to avoid problems with helix fusing on pitch that makes the helix touch (e.g., thread profile with 2mm rise and a 2mm pitch)
-        sketch.addConstraint(Sketcher.Constraint('DistanceY', 3, 2, 3, 1, s * 2))  # - (0.001 * App.Units.MilliMetre)))  # shrink slightly to avoid problems with helix fusing on pitch that makes the helix touch (e.g., thread profile with 2mm rise and a 2mm pitch)
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', 2, 2, minor_cone.bottom_radius))
-        sketch.addConstraint(Sketcher.Constraint('DistanceY', 2, 2, 0))
+        self.root_to_axis_projection_angle = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
+        self.root_to_axis_projection_angle.setProperty('unit', 'degree')
+        self.root_to_axis_projection_angle.setProperty('value', 90 * App.Units.Degree)
+        self.root_to_axis_projection_angle.editingFinished.connect(preview)
+        layout.addRow('Root-to-axis projection angle:', self.root_to_axis_projection_angle)
 
-        return ThreadProfileExtents(doc, sketch, minor_cone.bottom_radius)
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_shape: ConeFrustum | Cylinder, sink_depth: App.Units.Quantity):
+        length = self.length.property('value')
+        flank_cone_projection_angle = self.root_to_axis_projection_angle.property('value')
+        return trapezoid_profile_sketcher.Card.sketch_from_parameters(
+            doc,
+            sketch,
+            minor_shape,
+            length,
+            length,
+            _0_DEG,
+            _0_DEG,
+            trapezoid_profile_sketcher.ConeSlopeProjection(
+                angle=(_90_DEG - flank_cone_projection_angle)
+            ),
+            None,
+            sink_depth,
+        )
+

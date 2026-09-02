@@ -70,16 +70,9 @@ def run(doc: App.Document) -> None:
                 if screw_form.threaded:
                     if isinstance(minor_shape, ConeFrustum):
                         # TODO: Warn if thread axial offset extends past cone vertex, because the shift will fail.
-                        # TODO: Warn if thread radius offset is 0, because being tangent with the cone results in broken
-                        #       geometry.
-                        minor_shape_thread_adjusted = minor_shape \
-                            .widen(screw_form.thread_radius_offset) \
-                            .shift_bottom(screw_form.thread_axial_offset)
+                        minor_shape_axially_shifted = minor_shape.shift_bottom(screw_form.thread_axial_offset)
                     else:
-                        # TODO: Warn if thread radius offset is 0, because being tangent with the cone results in broken
-                        #       geometry.
-                        minor_shape_thread_adjusted = minor_shape \
-                            .widen(screw_form.thread_radius_offset)
+                        minor_shape_axially_shifted = minor_shape
                     for i in range(0, screw_form.thread_starts):
                         plane = body.newObject('Part::DatumPlane', f'Thread Profile {i} Plane')
                         # Each start should be spaced out evenly across 360 degrees. The +.01 is added to avoid the
@@ -111,12 +104,19 @@ def run(doc: App.Document) -> None:
                         # It's the same sketch being generated everytime, but on a different face. The extents should
                         # always be the same (or close enough, there may be rounding error). As such, the extents don't
                         # need to be overridden here, but it also doesn't really matter if it is.
-                        thread_profile_extents = screw_form.thread_profile_card.sketch(doc, sketch, minor_shape_thread_adjusted)
+                        # TODO: Warn if thread radius offset is 0, because being tangent with the cone results in broken
+                        #       geometry.
+                        thread_profile_extents = screw_form.thread_profile_card.sketch(
+                            doc,
+                            sketch,
+                            minor_shape_axially_shifted,
+                            screw_form.thread_sink_offset
+                        )
                         build_thread_feature(
                             doc,
                             body,
                             i,
-                            minor_shape_thread_adjusted,
+                            minor_shape_axially_shifted,
                             sketch,
                             thread_profile_extents,
                             screw_form.thread_lead,

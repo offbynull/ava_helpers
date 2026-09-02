@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -10,12 +11,24 @@ from screw.geometries.cone_frustum import ConeFrustum, Direction
 from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
 
+
 NAME = 'Trapezoid'
 
-_DEFAULT_SINK_DEPTH = 0.1 * App.Units.MilliMetre
 _0_MM = 0.0 * App.Units.MilliMetre
 _0_DEG = 0.0 * App.Units.Degree
 _90_DEG = 90.0 * App.Units.Degree
+
+
+@dataclass
+class ConeSlopeProjection:
+    angle: App.Units.Quantity
+
+
+@dataclass
+class RoundTip:
+    blunt_head_distance: App.Units.Quantity
+    blunt_head_angle: App.Units.Quantity
+
 
 class Card:
     def __init__(self, preview):
@@ -71,9 +84,48 @@ class Card:
         self.blunt_head_angle.editingFinished.connect(preview)
         round_tip_layout.addRow('Blunt head angle:', self.blunt_head_angle)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_shape: ConeFrustum | Cylinder, sink_depth: App.Units.Quantity = _DEFAULT_SINK_DEPTH):
-        raw_trapezoid_base = self.base.property('value').Value
-        raw_trapezoid_height = self.height.property('value').Value
+    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_shape: ConeFrustum | Cylinder, sink_depth: App.Units.Quantity):
+        cone_slope_projection = None
+        if self.cone_slope_projection_override.isChecked():
+            cone_slope_projection = ConeSlopeProjection(
+                angle=self.cone_slope_projection_angle.property('value'),
+            )
+
+        round_tip = None
+        if self.round_tip_group.isChecked():
+            round_tip = RoundTip(
+                blunt_head_distance=self.blunt_head_distance.property('value'),
+                blunt_head_angle=self.blunt_head_angle.property('value'),
+            )
+
+        return self.sketch_from_parameters(
+            doc,
+            sketch,
+            minor_shape,
+            self.base.property('value'),
+            self.height.property('value'),
+            self.head_facing_angle.property('value'),
+            self.lead_facing_angle.property('value'),
+            cone_slope_projection,
+            round_tip,
+            sink_depth,
+        )
+
+    @staticmethod
+    def sketch_from_parameters(
+        doc: App.Document,
+        sketch: App.DocumentObject,
+        minor_shape: ConeFrustum | Cylinder,
+        trapezoid_base: App.Units.Quantity,
+        trapezoid_height: App.Units.Quantity,
+        head_facing_angle: App.Units.Quantity,
+        lead_facing_angle: App.Units.Quantity,
+        cone_slope_projection: ConeSlopeProjection | None,
+        round_tip: RoundTip | None,
+        sink_depth: App.Units.Quantity,
+    ):
+        raw_trapezoid_base = trapezoid_base.Value
+        raw_trapezoid_height = trapezoid_height.Value
 
         r = minor_shape.bottom_radius.Value
         trap_bottom_left_vec = App.Vector(r, 0.0, 0.0)
@@ -109,11 +161,11 @@ class Card:
             ]
         )
 
-        head_taper_angle = (90 * App.Units.Degree) + self.head_facing_angle.property('value')
-        lead_taper_angle = (90 * App.Units.Degree) + self.lead_facing_angle.property('value')
+        head_taper_angle = (90 * App.Units.Degree) + head_facing_angle
+        lead_taper_angle = (90 * App.Units.Degree) + lead_facing_angle
         cone_slope = minor_shape.angle
-        if self.cone_slope_projection_override.isChecked():
-            cone_slope_projection_angle = (90 * App.Units.Degree) - self.cone_slope_projection_angle.property('value')
+        if cone_slope_projection is not None:
+            cone_slope_projection_angle = (90 * App.Units.Degree) - cone_slope_projection.angle
         else:
             cone_slope_projection_angle = (180 * App.Units.Degree) - lead_taper_angle
 
@@ -188,7 +240,7 @@ class Card:
         else:
             raise ValueError('This should never happen')
 
-        if self.round_tip_group.isChecked():
+        if round_tip is not None:
             doc.recompute([sketch])  # Need to recompute sketch to apply constraints and stuff - required for pulling coordinates
             top_right_geo = sketch.Geometry[trap_right_id]
             head_line_x_midpoint = top_right_geo.StartPoint.x + (top_right_geo.EndPoint.x - top_right_geo.StartPoint.x) / 2
@@ -224,14 +276,11 @@ class Card:
             sketch.addConstraint(Sketcher.Constraint('Tangent', trap_bottom_id, head_bottom_arc_id))
             sketch.addConstraint(Sketcher.Constraint('Coincident', blunt_head_line_id, 2, head_top_arc_id, 1))
             sketch.addConstraint(Sketcher.Constraint('Coincident', blunt_head_line_id, 1, head_bottom_arc_id, 2))
-            sketch.delConstraintOnPoint(blunt_head_line_id, 1)  # Remove coincident constraints just added - they seeds the position for the tangents below. Tangents keep it coincident.
+            sketch.delConstraintOnPoint(blunt_head_line_id, 1)  # Remove coincident constraints just added - they seed the position for the tangents below. Tangents keep it coincident.
             sketch.delConstraintOnPoint(blunt_head_line_id, 2)
-            blunt_head_angle = self.blunt_head_angle.property('value')
-            sketch.addConstraint(Sketcher.Constraint('Angle', trap_right_id, 2, blunt_head_line_id, 2, blunt_head_angle))
-            blunt_head_distance = self.blunt_head_distance.property('value')
-            sketch.addConstraint(Sketcher.Constraint('Distance', blunt_head_line_id, blunt_head_distance))
+            sketch.addConstraint(Sketcher.Constraint('Angle', trap_right_id, 2, blunt_head_line_id, 2, round_tip.blunt_head_angle))
+            sketch.addConstraint(Sketcher.Constraint('Distance', blunt_head_line_id, round_tip.blunt_head_distance))
             sketch.addConstraint(Sketcher.Constraint('Tangent', blunt_head_line_id, 2, head_top_arc_id, 1))
             sketch.addConstraint(Sketcher.Constraint('Tangent', blunt_head_line_id, 1, head_bottom_arc_id, 2))
-
 
         return ThreadProfileExtents(doc, sketch, minor_shape.bottom_radius)
