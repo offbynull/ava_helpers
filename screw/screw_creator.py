@@ -68,56 +68,28 @@ def run(doc: App.Document) -> None:
                 # ------
                 thread_profile_extents = None
                 if screw_form.threaded:
-                    if isinstance(minor_shape, ConeFrustum):
-                        # TODO: Warn if thread axial offset extends past cone vertex, because the shift will fail.
-                        minor_shape_axially_shifted = minor_shape.shift_bottom(screw_form.thread_axial_offset)
-                    else:
-                        minor_shape_axially_shifted = minor_shape
                     for i in range(0, screw_form.thread_starts):
-                        plane = body.newObject('Part::DatumPlane', f'Thread Profile {i} Plane')
-                        # Each start should be spaced out evenly across 360 degrees. The +.01 is added to avoid the
-                        # first thread from starting n at the cone/cylinder's seam, which is known to result in broken
-                        # geometry.
-                        #
-                        # TODO: Warn if rotation offset is 0.
-                        # TODO: Warn if thread axial offset results in thread that's self-intersecting.
-                        plane.AttachmentOffset = App.Placement(
-                            App.Vector(
-                                0.0,
-                                screw_form.thread_axial_offset.Value,
-                                0.0
-                            ),
-                            App.Rotation(
-                                0.0,
-                                (i / screw_form.thread_starts * 360.0) + screw_form.thread_rotation_offset.Value,
-                                0.0
-                            )
-                        )
-                        plane.MapReversed = False
-                        plane.AttachmentSupport = [(body.Origin, '')]
-                        plane.MapMode = 'ObjectXZ'
-                        plane.Visibility = False
-                        sketch = body.newObject('Sketcher::SketchObject', f'Thread Profile {i}')
-                        sketch.AttachmentSupport = plane, []
-                        sketch.MapMode = 'FlatFace'
-                        sketch.Visibility = False
-                        # It's the same sketch being generated everytime, but on a different face. The extents should
-                        # always be the same (or close enough, there may be rounding error). As such, the extents don't
-                        # need to be overridden here, but it also doesn't really matter if it is.
-                        # TODO: Warn if thread radius offset is 0, because being tangent with the cone results in broken
-                        #       geometry.
-                        thread_profile_extents = screw_form.thread_profile_card.sketch(
+                        thread_profile_sketch, thread_profile_extents = screw_form.thread_profile_card.build_sketch(
                             doc,
-                            sketch,
-                            minor_shape_axially_shifted,
-                            screw_form.thread_sink_offset
+                            body,
+                            minor_shape,
+                            i,
+                            screw_form.thread_starts,
+                            screw_form.thread_axial_offset,
+                            screw_form.thread_rotation_offset,
+                            screw_form.thread_sink_offset,
                         )
+                        if isinstance(minor_shape, ConeFrustum):
+                            # TODO: Warn if thread axial offset extends past cone vertex, because the shift will fail.
+                            minor_shape_axially_shifted = minor_shape.shift_bottom(screw_form.thread_axial_offset)
+                        else:
+                            minor_shape_axially_shifted = minor_shape
                         build_thread_feature(
                             doc,
                             body,
                             i,
                             minor_shape_axially_shifted,
-                            sketch,
+                            thread_profile_sketch,
                             thread_profile_extents,
                             screw_form.thread_lead,
                             screw_form.thread_left_handed

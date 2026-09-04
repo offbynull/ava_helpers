@@ -3,7 +3,7 @@ import FreeCAD as App
 from screw.geometries.cone_frustum import ConeFrustum
 from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
-from screw.utils import minor_shape_to_major_shape
+from screw.geometry_utils import minor_shape_to_major_shape
 
 _BUFFER = 10 * App.Units.MilliMetre
 

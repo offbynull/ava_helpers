@@ -1,5 +1,8 @@
 import math
+import shutil
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -7,16 +10,29 @@ import Part
 import Sketcher
 from PySide import QtGui as QtWidgets
 
+from logger import log, warn
+from screw.file_utils import md5_hash
 from screw.geometries.cone_frustum import ConeFrustum, Direction
 from screw.geometries.cylinder import Cylinder
 from screw.thread_profile_extents import ThreadProfileExtents
-
+from screw.ui_components.collapsible_group_box import CollapsibleGroupBox
 
 NAME = 'Trapezoid'
 
 _0_MM = 0.0 * App.Units.MilliMetre
 _0_DEG = 0.0 * App.Units.Degree
 _90_DEG = 90.0 * App.Units.Degree
+
+
+def _set_named_constraint(doc, sketch, name, value, recompute=False):
+    log(f'{name=} {value=} {recompute=}')
+    for i, c in enumerate(sketch.Constraints):
+        if c.Name == name:
+            sketch.setDatum(i, value)
+            if recompute:
+                doc.recompute([sketch])
+            return
+    raise ValueError(f'Constraint {name} not found')
 
 
 @dataclass
@@ -55,19 +71,19 @@ class Card:
         self.lead_facing_angle.editingFinished.connect(preview)
         layout.addRow('Lead-facing angle:', self.lead_facing_angle)
 
-        self.cone_slope_projection_override = QtWidgets.QGroupBox('Cone slope projection override')
-        self.cone_slope_projection_override.setCheckable(True)
-        self.cone_slope_projection_override.setChecked(False)
-        self.cone_slope_projection_override.toggled.connect(preview)
-        cone_slope_projection_layout = QtWidgets.QFormLayout(self.cone_slope_projection_override)
-        layout.addRow(self.cone_slope_projection_override)
+        self.cone_slope_projection_group = CollapsibleGroupBox('Cone slope projection')
+        self.cone_slope_projection_group.setCheckable(True)
+        self.cone_slope_projection_group.setChecked(False)
+        self.cone_slope_projection_group.toggled.connect(preview)
+        cone_slope_projection_layout = QtWidgets.QFormLayout(self.cone_slope_projection_group)
+        layout.addRow(self.cone_slope_projection_group)
 
         self.cone_slope_projection_angle = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
         self.cone_slope_projection_angle.setProperty('value', -10 * App.Units.Degree)
         self.cone_slope_projection_angle.editingFinished.connect(preview)
         cone_slope_projection_layout.addRow('Cone slope projection angle:', self.cone_slope_projection_angle)
 
-        self.round_tip_group = QtWidgets.QGroupBox('Rounded head')
+        self.round_tip_group = CollapsibleGroupBox('Rounded head')
         self.round_tip_group.setCheckable(True)
         self.round_tip_group.setChecked(False)
         self.round_tip_group.toggled.connect(preview)
@@ -75,7 +91,7 @@ class Card:
         layout.addRow(self.round_tip_group)
 
         self.blunt_head_distance = Gui.UiLoader().createWidget('Gui::QuantitySpinBox')
-        self.blunt_head_distance.setProperty('value', App.Units.Quantity(0.001, 'mm'))
+        self.blunt_head_distance.setProperty('value', 0.001 * App.Units.MilliMetre)
         self.blunt_head_distance.editingFinished.connect(preview)
         round_tip_layout.addRow('Blunt head distance:', self.blunt_head_distance)
 
@@ -84,203 +100,141 @@ class Card:
         self.blunt_head_angle.editingFinished.connect(preview)
         round_tip_layout.addRow('Blunt head angle:', self.blunt_head_angle)
 
-    def sketch(self, doc: App.Document, sketch: App.DocumentObject, minor_shape: ConeFrustum | Cylinder, sink_depth: App.Units.Quantity):
+    def build_sketch(
+            self,
+            doc: App.Document,
+            body: App.DocumentObject,
+            minor_shape: ConeFrustum | Cylinder,
+            thread_start_index: int,
+            thread_starts: int,
+            thread_axial_offset: App.Units.Quantity,
+            thread_rotation_offset: App.Units.Quantity,
+            thread_sink_offset: App.Units.Quantity
+    ):
         cone_slope_projection = None
-        if self.cone_slope_projection_override.isChecked():
+        if self.cone_slope_projection_group.isChecked():
             cone_slope_projection = ConeSlopeProjection(
                 angle=self.cone_slope_projection_angle.property('value'),
             )
-
         round_tip = None
         if self.round_tip_group.isChecked():
             round_tip = RoundTip(
                 blunt_head_distance=self.blunt_head_distance.property('value'),
                 blunt_head_angle=self.blunt_head_angle.property('value'),
             )
-
-        return self.sketch_from_parameters(
+        return self.build_sketch_from_parameters(
             doc,
-            sketch,
+            body,
             minor_shape,
+            thread_start_index,
+            thread_starts,
+            thread_axial_offset,
+            thread_rotation_offset,
+            thread_sink_offset,
             self.base.property('value'),
             self.height.property('value'),
             self.head_facing_angle.property('value'),
             self.lead_facing_angle.property('value'),
             cone_slope_projection,
             round_tip,
-            sink_depth,
         )
 
     @staticmethod
-    def sketch_from_parameters(
-        doc: App.Document,
-        sketch: App.DocumentObject,
-        minor_shape: ConeFrustum | Cylinder,
-        trapezoid_base: App.Units.Quantity,
-        trapezoid_height: App.Units.Quantity,
-        head_facing_angle: App.Units.Quantity,
-        lead_facing_angle: App.Units.Quantity,
-        cone_slope_projection: ConeSlopeProjection | None,
-        round_tip: RoundTip | None,
-        sink_depth: App.Units.Quantity,
+    def build_sketch_from_parameters(
+            doc: App.Document,
+            body: App.DocumentObject,
+            minor_shape: ConeFrustum | Cylinder,
+            thread_start_index: int,
+            thread_starts: int,
+            thread_axial_offset: App.Units.Quantity,
+            thread_rotation_offset: App.Units.Quantity,
+            thread_sink_offset: App.Units.Quantity,
+            trapezoid_base: App.Units.Quantity,
+            trapezoid_height: App.Units.Quantity,
+            head_facing_angle: App.Units.Quantity,
+            lead_facing_angle: App.Units.Quantity,
+            cone_slope_projection: ConeSlopeProjection | None,
+            round_tip: RoundTip | None,
     ):
-        raw_trapezoid_base = trapezoid_base.Value
-        raw_trapezoid_height = trapezoid_height.Value
+        fcstd_path = Path(__file__).parent / 'trapezoid_profile_sketches.FCStd'
+        fcstd_md5_actual = md5_hash(fcstd_path)
+        fcstd_md5_expected = 'eecebc38bc94fb3fc60abef2eec01bd9'
+        if md5_hash(fcstd_path) != fcstd_md5_expected:
+            warn(f'Trapezoid sketch file is unexpected: {fcstd_md5_actual=} vs {fcstd_md5_expected=}')
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_file = Path(temp_dir) / fcstd_path.name
+            shutil.copy2(fcstd_path, temp_file)
 
-        r = minor_shape.bottom_radius.Value
-        trap_bottom_left_vec = App.Vector(r, 0.0, 0.0)
-        trap_top_left_vec = App.Vector(r, raw_trapezoid_base, 0.0)
-        trap_bottom_right_vec = App.Vector(r + raw_trapezoid_height, 0.0, 0.0)
-        trap_top_right_vec = App.Vector(r + raw_trapezoid_height, raw_trapezoid_base, 0.0)
-        sink_top_right_vec = App.Vector(r + raw_trapezoid_height, 0.0, 0.0)
-        sink_top_left_vec = App.Vector(r + raw_trapezoid_height - sink_depth.Value, 0.0, 0.0)
-        sink_bottom_right_vec = App.Vector(
-            r + raw_trapezoid_height,
-            -raw_trapezoid_base,
-            0.0,
-        )
-        sink_bottom_left_vec = App.Vector(
-            r + raw_trapezoid_height - sink_depth.Value,
-            -raw_trapezoid_base,
-            0.0,
-        )
-
-        trap_right_id, trap_top_id, cone_slope_id, trap_bottom_id, trap_left_id, proj_bottom_id, proj_top_id, sink_top_id, sink_bottom_id, sink_left_id, sink_right_id = sketch.addGeometry(
-            [
-                Part.LineSegment(trap_bottom_right_vec, trap_top_right_vec),
-                Part.LineSegment(trap_top_right_vec, trap_top_left_vec),
-                Part.LineSegment(trap_top_left_vec, sink_bottom_right_vec),
-                Part.LineSegment(trap_bottom_left_vec, trap_bottom_right_vec),
-                Part.LineSegment(trap_bottom_left_vec, trap_top_left_vec),
-                Part.LineSegment(sink_bottom_right_vec, trap_bottom_left_vec),
-                Part.LineSegment(sink_top_right_vec, trap_top_left_vec),
-                Part.LineSegment(sink_top_right_vec, sink_top_left_vec),
-                Part.LineSegment(sink_bottom_left_vec, sink_bottom_right_vec),
-                Part.LineSegment(sink_top_left_vec, sink_bottom_left_vec),
-                Part.LineSegment(sink_top_right_vec, sink_bottom_right_vec),
-            ]
-        )
-
-        head_taper_angle = (90 * App.Units.Degree) + head_facing_angle
-        lead_taper_angle = (90 * App.Units.Degree) + lead_facing_angle
-        cone_slope = minor_shape.angle
-        if cone_slope_projection is not None:
-            cone_slope_projection_angle = (90 * App.Units.Degree) - cone_slope_projection.angle
-        else:
-            cone_slope_projection_angle = (180 * App.Units.Degree) - lead_taper_angle
-
-        sketch.addConstraint(Sketcher.Constraint('Coincident', trap_top_id, 1, trap_right_id, 2))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', trap_top_id, 2, trap_left_id, 2))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', trap_bottom_id, 2, trap_right_id, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', trap_bottom_id, 1, trap_left_id, 1))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', trap_left_id))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', trap_right_id))
-        sketch.addConstraint(Sketcher.Constraint('DistanceY', trap_left_id, 2, trap_left_id, 1, -raw_trapezoid_base))
-        if isinstance(minor_shape, Cylinder):
-            sketch.addConstraint(Sketcher.Constraint('DistanceX', trap_left_id, 1, minor_shape.bottom_radius.Value))
-            sketch.addConstraint(Sketcher.Constraint('PointOnObject', trap_top_id, 2, -1))
-        elif isinstance(minor_shape, ConeFrustum):
-            if minor_shape.direction == Direction.UP:
-                sketch.addConstraint(Sketcher.Constraint('DistanceX', trap_left_id, 1, minor_shape.bottom_radius.Value))
-                sketch.addConstraint(Sketcher.Constraint('PointOnObject', trap_top_id, 2, -1))
-            elif minor_shape.direction == Direction.DOWN:
-                sketch.addConstraint(Sketcher.Constraint('DistanceX', proj_top_id, 1, minor_shape.bottom_radius.Value))
-                sketch.addConstraint(Sketcher.Constraint('PointOnObject', sink_right_id, 1, -1))
+            src = App.openDocument(str(temp_file), hidden=True)
+            src_up_sketch, src_down_sketch = [o for o in src.Objects if o.TypeId == "Sketcher::SketchObject"]
+            if (isinstance(minor_shape, ConeFrustum) and minor_shape.direction == Direction.UP) or isinstance(minor_shape, Cylinder):
+                sketch = doc.copyObject(src_up_sketch, False)
+            elif isinstance(minor_shape, ConeFrustum) and minor_shape.direction == Direction.DOWN:
+                sketch = doc.copyObject(src_down_sketch, False)
             else:
                 raise ValueError('This should never happen')
-        else:
-            raise ValueError('This should never happen')
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', trap_top_id, 2, trap_top_id, 1, raw_trapezoid_height))
-        sketch.addConstraint(Sketcher.Constraint('Angle', trap_left_id, 2, trap_top_id, 2, head_taper_angle))
-        sketch.addConstraint(Sketcher.Constraint('Angle', trap_bottom_id, 1, trap_left_id, 1, lead_taper_angle))
-        sketch.toggleConstruction(trap_left_id)
+            App.closeDocument(src.Name)
+            App.setActiveDocument(doc.Name)
 
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', sink_top_id))
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', sink_bottom_id))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', sink_left_id))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', sink_right_id))
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', sink_bottom_id, 1, sink_bottom_id, 2, sink_depth))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', sink_left_id, 2, sink_bottom_id, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', sink_left_id, 1, sink_top_id, 2))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', sink_right_id, 2, sink_bottom_id, 2))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', sink_right_id, 1, sink_top_id, 1))
-        sketch.toggleConstruction(sink_right_id)
-
-        sketch.addConstraint(Sketcher.Constraint('Coincident', proj_top_id, 2, trap_top_id, 2))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', proj_top_id, 1, sink_right_id, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', proj_bottom_id, 2, trap_bottom_id, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', proj_bottom_id, 1, sink_right_id, 2))
-
-        if isinstance(minor_shape, Cylinder):
-            sketch.toggleConstruction(cone_slope_id)
-            sketch.addConstraint(Sketcher.Constraint('Coincident', cone_slope_id, 1, trap_top_id, 2))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', cone_slope_id, 2, sink_bottom_id, 2))
-            # sketch.addConstraint(Sketcher.Constraint('Angle', cone_slope_id, 1, trap_left_id, 2, cone_slope))
-            # Do not use cone_slope_projection_angle - this is a cylinder, it doesn't project any farther than the trapezoid
-            sketch.addConstraint(Sketcher.Constraint('Angle', trap_left_id, 1, proj_bottom_id, 2, _90_DEG))
-            sketch.addConstraint(Sketcher.Constraint('Angle', proj_top_id, 2, trap_left_id, 2, _90_DEG))
-            sketch.addConstraint(Sketcher.Constraint('DistanceX', 6, 1, 6, 2, _0_MM))
-        elif isinstance(minor_shape, ConeFrustum):
-            if minor_shape.direction == Direction.UP:
-                sketch.toggleConstruction(cone_slope_id)
-                sketch.addConstraint(Sketcher.Constraint('Coincident', cone_slope_id, 1, trap_top_id, 2))
-                sketch.addConstraint(Sketcher.Constraint('Coincident', cone_slope_id, 2, sink_bottom_id, 2))
-                sketch.addConstraint(Sketcher.Constraint('Angle', cone_slope_id, 1, trap_left_id, 2, cone_slope))
-                sketch.addConstraint(Sketcher.Constraint('Angle', trap_left_id, 1, proj_bottom_id, 2, cone_slope_projection_angle))
-                sketch.addConstraint(Sketcher.Constraint('Angle', proj_top_id, 2, trap_left_id, 2, _90_DEG))
-            elif minor_shape.direction == Direction.DOWN:
-                sketch.toggleConstruction(cone_slope_id)
-                sketch.addConstraint(Sketcher.Constraint('Coincident', cone_slope_id, 1, trap_bottom_id, 1))
-                sketch.addConstraint(Sketcher.Constraint('Coincident', cone_slope_id, 2, sink_top_id, 2))
-                sketch.addConstraint(Sketcher.Constraint('Angle', cone_slope_id, 1, trap_left_id, 1, -cone_slope))
-                sketch.addConstraint(Sketcher.Constraint('Angle', trap_left_id, 2, proj_top_id, 2, -cone_slope_projection_angle))
-                sketch.addConstraint(Sketcher.Constraint('Angle', trap_left_id, 2, proj_bottom_id, 2, -_90_DEG))
+            _set_named_constraint(doc, sketch, 'trap_base_length', -trapezoid_base)
+            _set_named_constraint(doc, sketch, 'trap_height_length', trapezoid_height)
+            _set_named_constraint(doc, sketch, 'trap_axial_offset', minor_shape.bottom_radius)
+            _set_named_constraint(doc, sketch, 'sink_len', thread_sink_offset)
+            _set_named_constraint(doc, sketch, 'trap_top_right_angle', _90_DEG + head_facing_angle)
+            _set_named_constraint(doc, sketch, 'trap_bottom_right_angle', _90_DEG + lead_facing_angle)
+            if round_tip is None:
+                sketch.toggleConstruction(0)
+                sketch.toggleConstruction(9)
+                sketch.toggleConstruction(10)
+                sketch.toggleConstruction(11)
+            else:
+                _set_named_constraint(doc, sketch, 'head_len', round_tip.blunt_head_distance)
+                _set_named_constraint(doc, sketch, 'head_angle', round_tip.blunt_head_angle)
+            cone_slope_projection_angle = _90_DEG
+            if cone_slope_projection is not None:
+                cone_slope_projection_angle = _90_DEG - cone_slope_projection.angle
+            if (isinstance(minor_shape, ConeFrustum) and minor_shape.direction == Direction.UP) or isinstance(minor_shape, Cylinder):
+                _set_named_constraint(doc, sketch, 'cone_slope_bottom_angle', cone_slope_projection_angle)
+            elif isinstance(minor_shape, ConeFrustum) and minor_shape.direction == Direction.DOWN:
+                _set_named_constraint(doc, sketch, 'cone_slope_top_angle', cone_slope_projection_angle)
             else:
                 raise ValueError('This should never happen')
-        else:
-            raise ValueError('This should never happen')
+            minor_shape_angle = minor_shape.angle
+            if minor_shape_angle == _0_DEG:  # Is it a cylinder?
+                minor_shape_angle = 0.01 * App.Units.Degree  # Sketch solver fails at 0, so make it almost 0
+            _set_named_constraint(doc, sketch, 'cone_slope_angle', minor_shape_angle)
+            doc.recompute([sketch])
 
-        if round_tip is not None:
-            doc.recompute([sketch])  # Need to recompute sketch to apply constraints and stuff - required for pulling coordinates
-            top_right_geo = sketch.Geometry[trap_right_id]
-            head_line_x_midpoint = top_right_geo.StartPoint.x + (top_right_geo.EndPoint.x - top_right_geo.StartPoint.x) / 2
-            head_line_y_midpoint = top_right_geo.StartPoint.y + (top_right_geo.EndPoint.y - top_right_geo.StartPoint.y) / 2
-            head_top_arc_id, head_bottom_arc_id, blunt_head_line_id = sketch.addGeometry([
-                Part.ArcOfCircle(
-                    Part.Circle(
-                        App.Vector(head_line_x_midpoint, head_line_y_midpoint, 0.0),
-                        App.Vector(0.0, 0.0, 1.0),
-                        0.5
-                    ),
-                    math.radians(0),
-                    math.radians(90)
+            plane = body.newObject('Part::DatumPlane', f'Thread Profile {thread_start_index} Plane')
+            # Each start should be spaced out evenly across 360 degrees. The +.01 is added to avoid the
+            # first thread from starting n at the cone/cylinder's seam, which is known to result in broken
+            # geometry.
+            #
+            # TODO: Warn if rotation offset is 0.
+            # TODO: Warn if thread axial offset results in thread that's self-intersecting.
+            plane.AttachmentOffset = App.Placement(
+                App.Vector(
+                    0.0,
+                    thread_axial_offset.Value,
+                    0.0
                 ),
-                Part.ArcOfCircle(
-                    Part.Circle(
-                        App.Vector(head_line_x_midpoint, head_line_y_midpoint, 0.0),
-                        App.Vector(0.0, 0.0, 1.0),
-                        0.5
-                    ),
-                    math.radians(-90),
-                    math.radians(0)
-                ),
-                Part.LineSegment(
-                    App.Vector(head_line_x_midpoint, head_line_y_midpoint-0.0001, 0.0),
-                    App.Vector(head_line_x_midpoint, head_line_y_midpoint+0.0001, 0.0)
-                ),
-            ])
-            sketch.toggleConstruction(trap_right_id)
-            sketch.addConstraint(Sketcher.Constraint('Coincident', head_top_arc_id, 2, trap_right_id, 2))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', head_bottom_arc_id, 1, trap_right_id, 1))
-            sketch.addConstraint(Sketcher.Constraint('Tangent', trap_top_id, head_top_arc_id))
-            sketch.addConstraint(Sketcher.Constraint('Tangent', trap_bottom_id, head_bottom_arc_id))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', blunt_head_line_id, 2, head_top_arc_id, 1))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', blunt_head_line_id, 1, head_bottom_arc_id, 2))
-            sketch.delConstraintOnPoint(blunt_head_line_id, 1)  # Remove coincident constraints just added - they seed the position for the tangents below. Tangents keep it coincident.
-            sketch.delConstraintOnPoint(blunt_head_line_id, 2)
-            sketch.addConstraint(Sketcher.Constraint('Angle', trap_right_id, 2, blunt_head_line_id, 2, round_tip.blunt_head_angle))
-            sketch.addConstraint(Sketcher.Constraint('Distance', blunt_head_line_id, round_tip.blunt_head_distance))
-            sketch.addConstraint(Sketcher.Constraint('Tangent', blunt_head_line_id, 2, head_top_arc_id, 1))
-            sketch.addConstraint(Sketcher.Constraint('Tangent', blunt_head_line_id, 1, head_bottom_arc_id, 2))
-
-        return ThreadProfileExtents(doc, sketch, minor_shape.bottom_radius)
+                App.Rotation(
+                    0.0,
+                    (thread_start_index / thread_starts * 360.0) + thread_rotation_offset.Value,
+                    0.0
+                )
+            )
+            plane.MapReversed = False
+            plane.AttachmentSupport = [(body.Origin, '')]
+            plane.MapMode = 'ObjectXZ'
+            plane.Visibility = False
+            body.addObject(sketch)
+            sketch.AttachmentSupport = plane, []
+            sketch.MapMode = 'FlatFace'
+            sketch.Visibility = False
+            # It's the same sketch being generated everytime, but on a different face. The extents should
+            # always be the same (or close enough, there may be rounding error). As such, the extents don't
+            # need to be overridden here, but it also doesn't really matter if it is.
+            # TODO: Warn if thread radius offset is 0, because being tangent with the cone results in broken
+            #       geometry.
+            return sketch, ThreadProfileExtents(doc, sketch, minor_shape.bottom_radius)
